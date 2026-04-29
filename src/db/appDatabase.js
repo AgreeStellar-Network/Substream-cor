@@ -232,7 +232,13 @@ class AppDatabase {
     } catch (error) {
       console.warn('ensureSubscriptionRiskColumns failed:', error.message);
     }
-     */
+  }
+
+  /**
+   * Ensure a creator row exists.
+   *
+   * @param {string} creatorId
+   */
   ensureCreator(creatorId) {
     this.db
       .prepare(
@@ -459,8 +465,6 @@ class AppDatabase {
       const row = this.db
         .prepare('SELECT subscriber_count AS subscriberCount FROM creators WHERE id = ?')
         .get(creatorId);
-      .prepare(`SELECT subscriber_count AS subscriberCount FROM creators WHERE id = ?`)
-        .get(creatorId);
 
       return (row && Number(row.subscriberCount)) || 0;
     }
@@ -500,6 +504,15 @@ class AppDatabase {
             'UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?',
           )
           .run(creatorId);
+
+        return this.getCreatorSubscriberCount(creatorId);
+      });
+    }
+
+  /**
+   * Get a subscription row for a creator and wallet.
+   *
+   * @param {string} creatorId
    * @param {string} walletAddress
    * @returns {object|null}
    */
@@ -646,24 +659,7 @@ createOrActivateSubscription(creatorId, walletAddress) {
       .run(creatorId);
 
     return { changed: true, count: this.getCreatorSubscriberCount(creatorId) };
-    // reactivate
-    this.db
-      .prepare(`UPDATE subscriptions SET active = 1, subscribed_at = ?, unsubscribed_at = NULL WHERE creator_id = ? AND wallet_address = ?`)
-      .run(now, creatorId, walletAddress);
-  } else {
-    this.db
-      .prepare(`INSERT INTO subscriptions (creator_id, wallet_address, active, subscribed_at) VALUES (?, ?, 1, ?)`)
-      .run(creatorId, walletAddress, now);
-  }
-
-      // Increment cached count
-      this.db
-      .prepare(`UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?`)
-      .run(creatorId);
-
-  const newCount = this.getCreatorSubscriberCount(creatorId);
-  return { changed: true, count: newCount };
-});
+  });
   }
 
 /**
@@ -697,16 +693,6 @@ deactivateSubscription(creatorId, walletAddress) {
       .run(creatorId);
 
     return { changed: true, count: this.getCreatorSubscriberCount(creatorId) };
-        .prepare(`UPDATE subscriptions SET active = 0, unsubscribed_at = ? WHERE creator_id = ? AND wallet_address = ?`)
-      .run(now, creatorId, walletAddress);
-
-    // Decrement cached count, clamp at 0
-    this.db
-      .prepare(`UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?`)
-      .run(creatorId);
-
-    const newCount = this.getCreatorSubscriberCount(creatorId);
-    return { changed: true, count: newCount };
   });
 }
 
@@ -722,12 +708,6 @@ countActiveSubscriptions(creatorId) {
     .get(creatorId);
   return (row && Number(row.ct)) || 0;
 }
-
-      .prepare(`SELECT COUNT(1) AS ct FROM subscriptions WHERE creator_id = ? AND active = 1`)
-  .get(creatorId);
-
-return (row && Number(row.ct)) || 0;
-  }
 
 /**
  * Get comments by post ID.

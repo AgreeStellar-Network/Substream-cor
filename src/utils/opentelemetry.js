@@ -1,6 +1,6 @@
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
-const { Resource } = require('@opentelemetry/resources');
+const { resourceFromAttributes } = require('@opentelemetry/resources');
 const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
 const { ConsoleSpanExporter, BatchSpanProcessor } = require('@opentelemetry/sdk-trace-base');
@@ -49,7 +49,7 @@ function initTracing(options = {}) {
   const deploymentEnvironment = process.env.NODE_ENV || 'development';
 
   const sdk = new NodeSDK({
-    resource: new Resource({
+    resource: resourceFromAttributes({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
       [SemanticResourceAttributes.SERVICE_VERSION]: serviceVersion,
       [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: deploymentEnvironment,
@@ -101,7 +101,7 @@ function initTracing(options = {}) {
     ],
   });
 
-  sdk.start()
+  Promise.resolve(sdk.start())
     .then(() => {
       console.log('[Tracing] OpenTelemetry initialized', {
         serviceName,

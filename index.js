@@ -404,6 +404,9 @@ async function createApp(dependencies = {}) {
     // Sandbox API
     app.use('/api/sandbox', require('./routes/sandbox'));
 
+    // Tax reporting API
+    app.use('/tax', require('./routes/tax'));
+
     // Social token gating endpoints
     app.use('/api/social-token', createSocialTokenRoutes());
 
