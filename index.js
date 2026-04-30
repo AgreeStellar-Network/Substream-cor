@@ -280,6 +280,7 @@ async function createApp(dependencies = {}) {
   app.set('backgroundWorker', backgroundWorker);
   app.set('federationService', federationService);
   app.set('federationWorker', federationWorker);
+  app.set('subscriptionVerifier', subscriptionVerifier);
 
   // Initialize and start AML scanner if enabled
   let amlScannerWorker = null;
@@ -292,658 +293,567 @@ async function createApp(dependencies = {}) {
     });
   }
 
+  // Start federation worker if ActivityPub is enabled
+  if (config.activityPub?.enabled !== false) {
+    const federationWorker = dependencies.federationWorker || new FederationWorker(database, config);
+    federationWorker.start().catch(error => {
+      console.error('Failed to start federation worker:', error);
+    });
+  }
 
+  // Start leaderboard worker if enabled
+  if (config.leaderboard?.enabled !== false) {
+    const leaderboardWorker = dependencies.leaderboardWorker || new LeaderboardWorker(config, database, getRedisClient(), EngagementLeaderboardService);
+    leaderboardWorker.start().catch(error => {
+      console.error('Failed to start leaderboard worker:', error);
+    });
+  }
 
-    // Start federation worker if ActivityPub is enabled
-    if (config.activityPub?.enabled !== false) {
-      const federationWorker = dependencies.federationWorker || new FederationWorker(database, config);
-      federationWorker.start().catch(error => {
-        console.error('Failed to start federation worker:', error);
-      });
+  console.log('IP Intelligence services initialized');
+
+  const dayInMs = 24 * 60 * 60 * 1000;
+  const subscriptionExpiryCheckerInterval = setInterval(async () => {
+    try {
+      await subscriptionExpiryChecker.runDailyCheck();
+    } catch (error) {
+      console.warn(
+        'Subscription expiry checker failed:',
+        error && error.message ? error.message : error,
+      );
     }
+  }, dayInMs);
 
-    // Start leaderboard worker if enabled
-    if (config.leaderboard?.enabled !== false) {
-      const leaderboardWorker = dependencies.leaderboardWorker || new LeaderboardWorker(config, database, getRedisClient(), EngagementLeaderboardService);
-      leaderboardWorker.start().catch(error => {
-        console.error('Failed to start leaderboard worker:', error);
-      });
+  if (typeof subscriptionExpiryCheckerInterval.unref === 'function') {
+    subscriptionExpiryCheckerInterval.unref();
+  }
 
-      console.log('IP Intelligence services initialized');
-    }
+  app.set('subscriptionExpiryCheckerInterval', subscriptionExpiryCheckerInterval);
 
-    const dayInMs = 24 * 60 * 60 * 1000;
-    const subscriptionExpiryCheckerInterval = setInterval(async () => {
-      try {
-        await subscriptionExpiryChecker.runDailyCheck();
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'Subscription expiry checker failed:',
-          error && error.message ? error.message : error,
-        );
-      }
-    }, dayInMs);
+  const videoWorker = dependencies.videoWorker || new VideoProcessingWorker(config, database);
 
-    if (typeof subscriptionExpiryCheckerInterval.unref === 'function') {
-      subscriptionExpiryCheckerInterval.unref();
-    }
+  // Initialize social token gating service and middleware
+  const socialTokenService = dependencies.socialTokenService || new SocialTokenGatingService(config, database, getRedisClient());
+  const socialTokenMiddleware = dependencies.socialTokenMiddleware || new SocialTokenGatingMiddleware(socialTokenService, database, getRedisClient());
 
-    app.set('subscriptionExpiryCheckerInterval', subscriptionExpiryCheckerInterval);
+  // Initialize collaboration revenue service and watch time middleware
+  const collaborationService = dependencies.collaborationService || new CollaborationRevenueService(config, database, getRedisClient());
+  const collaborationWatchTimeMiddleware = dependencies.collaborationWatchTimeMiddleware || new CollaborationWatchTimeMiddleware(collaborationService, database);
 
-    const videoWorker = dependencies.videoWorker || new VideoProcessingWorker(config, database);
+  // Initialize global stats service and worker
+  const globalStatsService = dependencies.globalStatsService || new GlobalStatsService(database);
+  const globalStatsWorker = dependencies.globalStatsWorker || new GlobalStatsWorker(database, {
+    refreshInterval: process.env.GLOBAL_STATS_REFRESH_INTERVAL ? parseInt(process.env.GLOBAL_STATS_REFRESH_INTERVAL) : 60000,
+    initialDelay: process.env.GLOBAL_STATS_INITIAL_DELAY ? parseInt(process.env.GLOBAL_STATS_INITIAL_DELAY) : 5000
+  });
 
-    // Initialize social token gating service and middleware
-    const socialTokenService = dependencies.socialTokenService || new SocialTokenGatingService(config, database, getRedisClient());
-    const socialTokenMiddleware = dependencies.socialTokenMiddleware || new SocialTokenGatingMiddleware(socialTokenService, database, getRedisClient());
+  // Initialize leaderboard service and worker
+  const redisClient = getRedisClient();
+  const leaderboardService = dependencies.leaderboardService || new EngagementLeaderboardService(config, database, redisClient);
+  const leaderboardWorker = dependencies.leaderboardWorker || new LeaderboardWorker(config, database, redisClient, leaderboardService);
 
-    // Initialize collaboration revenue service and watch time middleware
-    const collaborationService = dependencies.collaborationService || new CollaborationRevenueService(config, database, getRedisClient());
-    const collaborationWatchTimeMiddleware = dependencies.collaborationWatchTimeMiddleware || new CollaborationWatchTimeMiddleware(collaborationService, database);
+  // Initialize subdomain and SSL services
+  const subdomainService = dependencies.subdomainService || new SubdomainService(database, config);
+  const sslCertificateService = dependencies.sslCertificateService || new SslCertificateService(config);
+  const subdomainMiddleware = dependencies.subdomainMiddleware || new SubdomainMiddleware(database, config);
 
-    // Initialize global stats service and worker
-    const globalStatsService = dependencies.globalStatsService || new GlobalStatsService(database);
-    const globalStatsWorker = dependencies.globalStatsWorker || new GlobalStatsWorker(database, {
-      refreshInterval: process.env.GLOBAL_STATS_REFRESH_INTERVAL ? parseInt(process.env.GLOBAL_STATS_REFRESH_INTERVAL) : 60000,
-      initialDelay: process.env.GLOBAL_STATS_INITIAL_DELAY ? parseInt(process.env.GLOBAL_STATS_INITIAL_DELAY) : 5000
-    });
+  // expose services on the express app so external routers can access them
+  app.set('subscriptionService', subscriptionService);
+  app.set('subscriptionExpiryChecker', subscriptionExpiryChecker);
+  app.set('backgroundWorker', backgroundWorker);
+  app.set('globalStatsService', globalStatsService);
+  app.set('globalStatsWorker', globalStatsWorker);
+  app.set('leaderboardService', leaderboardService);
+  app.set('leaderboardWorker', leaderboardWorker);
+  app.set('socialTokenService', socialTokenService);
+  app.set('socialTokenMiddleware', socialTokenMiddleware);
+  app.set('subdomainService', subdomainService);
+  app.set('sslCertificateService', sslCertificateService);
+  app.set('collaborationService', collaborationService);
+  app.set('collaborationWatchTimeMiddleware', collaborationWatchTimeMiddleware);
+  app.set('subscriptionVerifier', subscriptionVerifier);
 
-    // Initialize leaderboard service and worker
-    const redisClient = getRedisClient();
-    const leaderboardService = dependencies.leaderboardService || new EngagementLeaderboardService(config, database, redisClient);
-    const leaderboardWorker = dependencies.leaderboardWorker || new LeaderboardWorker(config, database, redisClient, leaderboardService);
+  // Initialize and start predictive churn analysis worker
+  const { PredictiveChurnAnalysisWorker } = require('./src/services/predictiveChurnAnalysisWorker');
+  const churnAnalysisWorker = dependencies.churnAnalysisWorker || new PredictiveChurnAnalysisWorker(database, {
+    checkInterval: process.env.CHURN_ANALYSIS_INTERVAL ? parseInt(process.env.CHURN_ANALYSIS_INTERVAL) : 3600000,
+  });
+  app.set('churnAnalysisWorker', churnAnalysisWorker);
+  churnAnalysisWorker.start().catch(error => {
+    console.error('Failed to start PredictiveChurnAnalysisWorker:', error);
+  });
 
-    // Initialize subdomain and SSL services
-    const subdomainService = dependencies.subdomainService || new SubdomainService(database, config);
-    const sslCertificateService = dependencies.sslCertificateService || new SslCertificateService(config);
-    const subdomainMiddleware = dependencies.subdomainMiddleware || new SubdomainMiddleware(database, config);
+  // Start global stats worker
+  globalStatsWorker.start().catch(error => {
+    console.error('Failed to start global stats worker:', error);
+  });
 
-    // expose services on the express app so external routers can access them
-    app.set('subscriptionService', subscriptionService);
-    app.set('subscriptionExpiryChecker', subscriptionExpiryChecker);
-    app.set('backgroundWorker', backgroundWorker);
-    app.set('globalStatsService', globalStatsService);
-    app.set('globalStatsWorker', globalStatsWorker);
-    app.set('leaderboardService', leaderboardService);
-    app.set('leaderboardWorker', leaderboardWorker);
-    app.set('socialTokenService', socialTokenService);
-    app.set('socialTokenMiddleware', socialTokenMiddleware);
-    app.set('subdomainService', subdomainService);
-    app.set('sslCertificateService', sslCertificateService);
-    app.set('collaborationService', collaborationService);
-    app.set('collaborationWatchTimeMiddleware', collaborationWatchTimeMiddleware);
-
-    // Initialize and start predictive churn analysis worker
-    const { PredictiveChurnAnalysisWorker } = require('./src/services/predictiveChurnAnalysisWorker');
-    const churnAnalysisWorker = dependencies.churnAnalysisWorker || new PredictiveChurnAnalysisWorker(database, {
-      checkInterval: process.env.CHURN_ANALYSIS_INTERVAL ? parseInt(process.env.CHURN_ANALYSIS_INTERVAL) : 3600000,
-    });
-    app.set('churnAnalysisWorker', churnAnalysisWorker);
-    churnAnalysisWorker.start().catch(error => {
-      console.error('Failed to start PredictiveChurnAnalysisWorker:', error);
-    });
-
-    // Start global stats worker
-    globalStatsWorker.start().catch(error => {
-      console.error('Failed to start global stats worker:', error);
-    });
-
-    // Start federation worker if ActivityPub is enabled
+  // Start federation worker if ActivityPub is enabled
   if (config.activityPub?.enabled !== false) {
     federationWorker.start().catch(error => {
       console.error('Failed to start federation worker:', error);
     });
   }
 
+  app.use(cors());
+  app.use(express.json());
 
+  // Subscription events webhook
+  app.use('/api/subscription', require('./routes/subscription'));
+  // Payouts API
+  app.use('/api/payouts', require('./routes/payouts'));
+  // Sandbox API
+  app.use('/api/sandbox', require('./routes/sandbox'));
 
-    // Subscription events webhook
-    app.use('/api/subscription', require('./routes/subscription'));
-    // Payouts API
-    app.use('/api/payouts', require('./routes/payouts'));
-    // Sandbox API
-    app.use('/api/sandbox', require('./routes/sandbox'));
+  // Social token gating endpoints
+  app.use('/api/social-token', createSocialTokenRoutes());
 
-    // Tax reporting API
-    app.use('/tax', require('./routes/tax'));
+  // Global stats endpoints
+  app.use('/api/global-stats', createGlobalStatsRouter({ database, globalStatsService }));
 
-    // Social token gating endpoints
-    app.use('/api/social-token', createSocialTokenRoutes());
+  // Creator collaboration endpoints
+  app.use('/api/collaborations', createCollaborationRoutes());
 
-    // Global stats endpoints
-    app.use('/api/global-stats', createGlobalStatsRouter({ database, globalStatsService }));
+  // Privacy preference endpoints
+  app.use('/api/v1/users', createPrivacyRoutes({ database }));
 
-    // Creator collaboration endpoints
-    app.use('/api/collaborations', createCollaborationRoutes());
+  // Subdomain management endpoints
+  app.use('/api/subdomains', createSubdomainRoutes({ database, config, subdomainService, sslCertificateService }));
 
-    // Privacy preference endpoints
-    app.use('/api/v1/users', createPrivacyRoutes({ database }));
+  // Price feed endpoints
+  const createPriceRouter = require('./routes/price');
+  app.use('/api/price-feed', createPriceRouter());
 
-    // Subdomain management endpoints
-    app.use('/api/subdomains', createSubdomainRoutes({ database, config, subdomainService, sslCertificateService }));
+  app.use((req, res, next) => {
+    req.config = config;
+    req.database = database;
+    req.subscriptionVerifier = subscriptionVerifier;
+    next();
+  });
 
-    // Price feed endpoints
-    const createPriceRouter = require('./routes/price');
-    app.use('/api/price-feed', createPriceRouter());
+  // Leaky-bucket rate limiting per wallet address (requires Redis).
+  if (dependencies.rateLimiter) {
+    app.use('/api', dependencies.rateLimiter);
+  } else if (process.env.REDIS_URL || process.env.REDIS_HOST) {
+    app.use('/api', createRateLimiter({
+      redis: getRedisClient(),
+      bucketCapacity: Number(process.env.RATE_LIMIT_CAPACITY || 60),
+      leakRatePerSecond: Number(process.env.RATE_LIMIT_LEAK_RATE || 1),
+      blockDurationSeconds: Number(process.env.RATE_LIMIT_BLOCK_SECONDS || 300),
+      sybilThreshold: Number(process.env.SYBIL_THRESHOLD || 3),
+    }));
+  }
 
-    // Social token gating endpoints
-    app.use('/api/social-token', createSocialTokenRoutes());
-
-    app.use((req, res, next) => {
-      req.config = config;
-      req.database = database;
-      req.subscriptionVerifier = subscriptionVerifier;
-      next();
+  // ── Health / root ──────────────────────────────────────────────────────────
+  app.get('/', (req, res) => {
+    res.json({
+      project: 'SubStream Protocol',
+      status: 'Active',
+      contract: config.soroban.contractId,
+      version: '1.0.0',
+      endpoints: {
+        auth: '/auth',
+        content: '/content',
+        analytics: '/analytics',
+        storage: '/storage',
+        posts: '/posts',
+        health: '/health',
+      },
     });
+  });
 
-    // Leaky-bucket rate limiting per wallet address (requires Redis).
-    if (dependencies.rateLimiter) {
-      app.use('/api', dependencies.rateLimiter);
-    } else if (process.env.REDIS_URL || process.env.REDIS_HOST) {
-      app.use('/api', createRateLimiter({
-        redis: getRedisClient(),
-        bucketCapacity: Number(process.env.RATE_LIMIT_CAPACITY || 60),
-        leakRatePerSecond: Number(process.env.RATE_LIMIT_LEAK_RATE || 1),
-        blockDurationSeconds: Number(process.env.RATE_LIMIT_BLOCK_SECONDS || 300),
-        sybilThreshold: Number(process.env.SYBIL_THRESHOLD || 3),
-      }));
+  // Simple health check
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      uptime: process.uptime()
+    });
+  });
+
+  // Deep health check - checks database, redis, and soroban
+  app.get('/health/deep', async (req, res) => {
+    const startTime = Date.now();
+    const result = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      checks: {}
+    };
+
+    // Check Database
+    try {
+      database.db.prepare('SELECT 1').get();
+      result.checks.database = { status: 'up' };
+    } catch (error) {
+      result.checks.database = { status: 'down', error: error.message };
+      result.status = 'unhealthy';
     }
 
-    // ── Health / root ──────────────────────────────────────────────────────────
-    app.get('/', (req, res) => {
-      res.json({
-        project: 'SubStream Protocol',
-        status: 'Active',
-        contract: config.soroban.contractId,
-        version: '1.0.0',
-        endpoints: {
-          auth: '/auth',
-          content: '/content',
-          analytics: '/analytics',
-          storage: '/storage',
-          posts: '/posts',
-          health: '/health',
-        },
-      });
+    // Check Redis
+    try {
+      const redisClient = getRedisClient();
+      const ping = await redisClient.ping();
+      result.checks.redis = { status: ping === 'PONG' ? 'up' : 'degraded' };
+      if (ping !== 'PONG') result.status = 'degraded';
+    } catch (error) {
+      result.checks.redis = { status: 'down', error: error.message };
+      result.status = 'unhealthy';
+    }
+
+    // Check Soroban
+    try {
+      const ledger = await subscriptionVerifier.server.getLatestLedger();
+      result.checks.soroban = { status: 'up', ledger: ledger.sequence };
+    } catch (error) {
+      result.checks.soroban = { status: 'down', error: error.message };
+      result.status = 'unhealthy';
+    }
+
+    result.responseTimeMs = Date.now() - startTime;
+    const statusCode = result.status === 'unhealthy' ? 503 : 200;
+    res.status(statusCode).json(result);
+  });
+
+  // Database health check
+  app.get('/health/database', async (req, res) => {
+    try {
+      database.db.prepare('SELECT 1').get();
+      res.json({ status: 'up', timestamp: new Date().toISOString() });
+    } catch (error) {
+      res.status(503).json({ status: 'down', error: error.message });
+    }
+  });
+
+  // Redis health check
+  app.get('/health/redis', async (req, res) => {
+    try {
+      const redisClient = getRedisClient();
+      const ping = await redisClient.ping();
+      res.json({ status: ping === 'PONG' ? 'up' : 'degraded' });
+    } catch (error) {
+      res.status(503).json({ status: 'down', error: error.message });
+    }
+  });
+
+  // Soroban health check
+  app.get('/health/soroban', async (req, res) => {
+    try {
+      const ledger = await subscriptionVerifier.server.getLatestLedger();
+      res.json({ status: 'up', ledger: ledger.sequence });
+    } catch (error) {
+      res.status(503).json({ status: 'down', error: error.message });
+    }
+  });
+
+  // Readiness check
+  app.get('/health/readiness', async (req, res) => {
+    let dbOk = false, redisOk = false, sorobanOk = false;
+    
+    try { database.db.prepare('SELECT 1').get(); dbOk = true; } catch (e) {}
+    try { const redisClient = getRedisClient(); const ping = await redisClient.ping(); redisOk = ping === 'PONG'; } catch (e) {}
+    try { await subscriptionVerifier.server.getLatestLedger(); sorobanOk = true; } catch (e) {}
+    
+    const ready = dbOk && redisOk && sorobanOk;
+    res.status(ready ? 200 : 503).json({ 
+      ready, 
+      checks: { database: dbOk, redis: redisOk, soroban: sorobanOk }
     });
+  });
 
-    app.get('/health', (req, res) => {
-      res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-        services: {
-          auth: 'active',
-          content: 'active',
-          analytics: 'active',
-          storage: 'active',
-          posts: 'active',
-        },
-      });
-    });
+  // ── Auth routes ────────────────────────────────────────────────────────────
+  app.use('/auth', require('./routes/auth'));
+  app.use('/auth', require('./routes/stellarAuth'));
 
-    // ── Auth routes ────────────────────────────────────────────────────────────
-    app.use('/auth', require('./routes/auth'));
-    app.use('/auth', require('./routes/stellarAuth'));
+  // ── SEP-24 Interactive Flow routes ───────────────────────────────────────────
+  app.use('/sep24', require('./routes/sep24'));
 
-    // ── SEP-12 Customer Identification (KYC) routes ─────────────────────────────
-    app.use('/sep12', require('./routes/sep12'));
+  // ── Global Reputation System routes ────────────────────────────────────────
+  app.use('/api/reputation', require('./routes/globalReputation'));
 
-    // ── SumSub KYC Webhook ───────────────────────────────────────────────────────
-    app.use('/webhooks', require('./routes/sumsubWebhook'));
+  // ── Soroban Health and Circuit Breaker routes ───────────────────────────────
+  app.use('/api/soroban', require('./routes/sorobanHealth'));
 
-    // ── SEP-24 Interactive Flow routes ───────────────────────────────────────────
-    app.use('/sep24', require('./routes/sep24'));
+  // ── Endpoint Monitoring and Alerting routes ─────────────────────────────────
+  app.use('/api/monitoring', require('./routes/monitoring'));
 
-    // ── Global Reputation System routes ────────────────────────────────────────
-    app.use('/api/reputation', require('./routes/globalReputation'));
+  // ── Tier-gated content routes ──────────────────────────────────────────────
+  app.use('/content', require('./routes/content'));
 
-    // ── Soroban Health and Circuit Breaker routes ───────────────────────────────
-    app.use('/api/soroban', require('./routes/sorobanHealth'));
+  // ── Other feature routes ───────────────────────────────────────────────────
+  app.use('/analytics', require('./routes/analytics'));
+  app.use('/storage', require('./routes/storage'));
+  app.use('/posts', require('./routes/posts'));
 
-    // ── Endpoint Monitoring and Alerting routes ─────────────────────────────────
-    app.use('/api/monitoring', require('./routes/monitoring'));
+  // ── Usage Quota and Monetization routes ───────────────────────────────────────
+  app.use('/api/v1/usage-quota', require('./routes/usageQuota'));
 
-    // ── Tier-gated content routes ──────────────────────────────────────────────
-    // attachTier already ran globally; routes/content.js uses requireTier
-    // on individual endpoints as needed.
-    app.use('/content', require('./routes/content'));
+  // ── CDN token endpoints ────────────────────────────────────────────────────
+  app.post('/api/cdn/token', async (req, res) => {
+    const requiredFields = ['walletAddress', 'creatorAddress', 'contentId', 'segmentPath'];
+    const missingFields = requiredFields.filter((field) => !req.body?.[field]);
 
-    // ── Other feature routes ───────────────────────────────────────────────────
-    app.use('/analytics', require('./routes/analytics'));
-    app.use('/storage', require('./routes/storage'));
-    app.use('/posts', require('./routes/posts'));
+    if (missingFields.length > 0) {
+      return res.status(400).json({ error: 'Missing required fields', missingFields });
+    }
 
-    // ── Usage Quota and Monetization routes ───────────────────────────────────────
-    app.use('/api/v1/usage-quota', require('./routes/usageQuota'));
+    try {
+      const accessRequest = {
+        walletAddress: req.body.walletAddress,
+        creatorAddress: req.body.creatorAddress,
+        contentId: req.body.contentId,
+        segmentPath: req.body.segmentPath,
+      };
 
-    // ── CDN token endpoints ────────────────────────────────────────────────────
-    app.post('/api/cdn/token', async (req, res) => {
-      const requiredFields = ['walletAddress', 'creatorAddress', 'contentId', 'segmentPath'];
-      const missingFields = requiredFields.filter((field) => !req.body?.[field]);
+      // Check if content requires social token gating
+      const socialTokenService = req.app.get('socialTokenService');
+      let socialTokenAccess = null;
 
-      if (missingFields.length > 0) {
-        return res.status(400).json({ error: 'Missing required fields', missingFields });
-      }
+      if (socialTokenService) {
+        socialTokenAccess = await socialTokenService.checkContentAccess(
+          accessRequest.walletAddress,
+          accessRequest.contentId
+        );
 
-      try {
-        const accessRequest = {
-          walletAddress: req.body.walletAddress,
-          creatorAddress: req.body.creatorAddress,
-          contentId: req.body.contentId,
-          segmentPath: req.body.segmentPath,
-        };
-
-        // Check if content requires social token gating
-        const socialTokenService = req.app.get('socialTokenService');
-        let socialTokenAccess = null;
-
-        if (socialTokenService) {
-          socialTokenAccess = await socialTokenService.checkContentAccess(
-            accessRequest.walletAddress,
-            accessRequest.contentId
-          );
-
-          // If social token gating is required and access is denied, return error
-          if (socialTokenAccess.requiresToken && !socialTokenAccess.hasAccess) {
-            return res.status(403).json({
-              error: 'Social token requirements not met',
-              code: 'INSUFFICIENT_SOCIAL_TOKENS',
-              details: {
-                assetCode: socialTokenAccess.assetCode,
-                assetIssuer: socialTokenAccess.assetIssuer,
-                minimumBalance: socialTokenAccess.minimumBalance,
-                reason: socialTokenAccess.reason
-              }
-            });
-          }
-        }
-
-        // Verify subscription (existing logic)
-        const subscription = await subscriptionVerifier.verifySubscription(accessRequest);
-
-        if (!subscription.active) {
+        if (socialTokenAccess.requiresToken && !socialTokenAccess.hasAccess) {
           return res.status(403).json({
-            error: 'Active on-chain subscription required',
-            creatorAddress: accessRequest.creatorAddress,
-            contentId: accessRequest.contentId,
+            error: 'Social token requirements not met',
+            code: 'INSUFFICIENT_SOCIAL_TOKENS',
+            details: {
+              assetCode: socialTokenAccess.assetCode,
+              assetIssuer: socialTokenAccess.assetIssuer,
+              minimumBalance: socialTokenAccess.minimumBalance,
+              reason: socialTokenAccess.reason
+            }
           });
         }
+      }
 
-        // Issue token with social token metadata if applicable
-        const tokenData = {
-          walletAddress: accessRequest.walletAddress,
+      const subscription = await subscriptionVerifier.verifySubscription(accessRequest);
+
+      if (!subscription.active) {
+        return res.status(403).json({
+          error: 'Active on-chain subscription required',
           creatorAddress: accessRequest.creatorAddress,
           contentId: accessRequest.contentId,
-          segmentPath: accessRequest.segmentPath,
-          subscription,
+        });
+      }
+
+      const tokenData = {
+        walletAddress: accessRequest.walletAddress,
+        creatorAddress: accessRequest.creatorAddress,
+        contentId: accessRequest.contentId,
+        segmentPath: accessRequest.segmentPath,
+        subscription,
+      };
+
+      if (socialTokenAccess && socialTokenAccess.requiresToken && socialTokenAccess.hasAccess) {
+        const sessionData = await socialTokenService.startBalanceReverification(
+          null,
+          accessRequest.walletAddress,
+          accessRequest.contentId
+        );
+        tokenData.socialTokenSession = {
+          sessionId: sessionData.sessionId,
+          verificationInterval: socialTokenAccess.verificationInterval,
+          assetInfo: {
+            code: socialTokenAccess.assetCode,
+            issuer: socialTokenAccess.assetIssuer,
+            minimumBalance: socialTokenAccess.minimumBalance
+          }
         };
+      }
 
-        // Add social token session info if required
-        if (socialTokenAccess && socialTokenAccess.requiresToken && socialTokenAccess.hasAccess) {
-          const sessionData = await socialTokenService.startBalanceReverification(
-            null, // Will generate session ID
-            accessRequest.walletAddress,
-            accessRequest.contentId
-          );
-          tokenData.socialTokenSession = {
-            sessionId: sessionData.sessionId,
-            verificationInterval: socialTokenAccess.verificationInterval,
-            assetInfo: {
-              code: socialTokenAccess.assetCode,
-              issuer: socialTokenAccess.assetIssuer,
-              minimumBalance: socialTokenAccess.minimumBalance
-            }
-          };
-        }
+      const issuedToken = tokenService.issueToken(tokenData);
 
-        const issuedToken = tokenService.issueToken(tokenData);
-
-        return res.status(200).json({
+      return res.status(200).json({
+        token: issuedToken.token,
+        tokenType: 'Bearer',
+        expiresInSeconds: issuedToken.expiresInSeconds,
+        expiresAt: issuedToken.expiresAt,
+        playbackUrl: tokenService.buildPlaybackUrl({
+          contentId: accessRequest.contentId,
+          segmentPath: accessRequest.segmentPath,
           token: issuedToken.token,
-          tokenType: 'Bearer',
-          expiresInSeconds: issuedToken.expiresInSeconds,
-          expiresAt: issuedToken.expiresAt,
-          playbackUrl: tokenService.buildPlaybackUrl({
-            contentId: accessRequest.contentId,
-            segmentPath: accessRequest.segmentPath,
-            token: issuedToken.token,
-          }),
-          socialTokenSession: tokenData.socialTokenSession || null
-        });
-      } catch (error) {
-        return res.status(error.statusCode || 503).json({
-          error: error.message || 'Unable to verify subscription',
-        });
+        }),
+        socialTokenSession: tokenData.socialTokenSession || null
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 503).json({
+        error: error.message || 'Unable to verify subscription',
+      });
+    }
+  });
+
+  app.all('/api/cdn/validate', (req, res) => {
+    const token = extractToken(req);
+
+    if (!token) {
+      return res.status(400).json({ error: 'Missing CDN access token' });
+    }
+
+    try {
+      const decoded = tokenService.verifyToken(token, {
+        contentId: req.query.contentId || req.body?.contentId,
+        segmentPath: req.query.segmentPath || req.body?.segmentPath,
+      });
+
+      return res.status(200).json({
+        valid: true,
+        expiresAt: new Date(decoded.exp * 1000).toISOString(),
+        claims: {
+          walletAddress: decoded.sub,
+          creatorAddress: decoded.creatorAddress,
+          contentId: decoded.contentId,
+          segmentPath: decoded.segmentPath,
+        },
+      });
+    } catch (error) {
+      const statusCode = error instanceof TokenValidationError ? 401 : 400;
+      return res.status(statusCode).json({
+        valid: false,
+        error: error.message || 'Invalid CDN access token',
+      });
+    }
+  });
+
+  // ── Creator action endpoints ───────────────────────────────────────────────
+  app.patch(
+    '/api/creator/flow-rate',
+    requireCreatorAuth(creatorAuthService),
+    async (req, res) => {
+      if (!isPresent(req.body?.flowRate)) {
+        return res.status(400).json({ success: false, error: 'flowRate is required' });
       }
-    });
-
-    app.all('/api/cdn/validate', (req, res) => {
-      const token = extractToken(req);
-
-      if (!token) {
-        return res.status(400).json({ error: 'Missing CDN access token' });
-      }
-
       try {
-        const decoded = tokenService.verifyToken(token, {
-          contentId: req.query.contentId || req.body?.contentId,
-          segmentPath: req.query.segmentPath || req.body?.segmentPath,
-        });
-
-        return res.status(200).json({
-          valid: true,
-          expiresAt: new Date(decoded.exp * 1000).toISOString(),
-          claims: {
-            walletAddress: decoded.sub,
-            creatorAddress: decoded.creatorAddress,
-            contentId: decoded.contentId,
-            segmentPath: decoded.segmentPath,
-          },
-        });
-      } catch (error) {
-        const statusCode = error instanceof TokenValidationError ? 401 : 400;
-        return res.status(statusCode).json({
-          valid: false,
-          error: error.message || 'Invalid CDN access token',
-        });
-      }
-    });
-
-    // ── Creator action endpoints ───────────────────────────────────────────────
-    app.patch(
-      '/api/creator/flow-rate',
-      requireCreatorAuth(creatorAuthService),
-      async (req, res) => {
-        if (!isPresent(req.body?.flowRate)) {
-          return res.status(400).json({ success: false, error: 'flowRate is required' });
-        }
-        try {
-          const result = creatorActionService.updateFlowRate({
-            creatorId: req.creator.id,
-            flowRate: normalizeScalar(req.body.flowRate),
-            currency: isPresent(req.body.currency) ? String(req.body.currency) : null,
-            ipAddress: getRequestIp(req),
-          });
-          return res.status(200).json({ success: true, data: result });
-        } catch (error) {
-          return handleActionError(res, error);
-        }
-      },
-    );
-
-    app.patch(
-      '/api/creator/videos/:videoId/visibility',
-      requireCreatorAuth(creatorAuthService),
-      async (req, res) => {
-        if (!isPresent(req.body?.visibility)) {
-          return res.status(400).json({ success: false, error: 'visibility is required' });
-        }
-        try {
-          const result = creatorActionService.updateVideoVisibility({
-            creatorId: req.creator.id,
-            videoId: req.params.videoId,
-            visibility: String(req.body.visibility),
-            ipAddress: getRequestIp(req),
-          });
-          return res.status(200).json({ success: true, data: result });
-        } catch (error) {
-          return handleActionError(res, error);
-        }
-      },
-    );
-
-    app.patch(
-      '/api/creator/coop-splits/:splitId',
-      requireCreatorAuth(creatorAuthService),
-      async (req, res) => {
-        if (!req.body?.splits || !Array.isArray(req.body.splits) || req.body.splits.length === 0) {
-          return res
-            .status(400)
-            .json({ success: false, error: 'splits must be a non-empty array' });
-        }
-        try {
-          const result = creatorActionService.updateCoopSplit({
-            creatorId: req.creator.id,
-            splitId: req.params.splitId,
-            splits: req.body.splits,
-            ipAddress: getRequestIp(req),
-          });
-          return res.status(200).json({ success: true, data: result });
-        } catch (error) {
-          return handleActionError(res, error);
-        }
-      },
-    );
-
-    app.get(
-      '/api/creator/audit-log',
-      requireCreatorAuth(creatorAuthService),
-      (req, res) => {
-        const logs = auditLogService.listByCreatorId(req.creator.id);
-        return res.status(200).json({ success: true, data: logs });
-      },
-    );
-
-    app.get(
-      '/api/creator/audit-log/export',
-      requireCreatorAuth(creatorAuthService),
-      (req, res) => {
-        const format = String(req.query.format || '').toLowerCase();
-
-        if (!['csv', 'pdf'].includes(format)) {
-          return res.status(400).json({ success: false, error: 'format must be one of: csv, pdf' });
-        }
-
-        const logs = auditLogService.listByCreatorId(req.creator.id);
-        const exportTimestamp = new Date().toISOString();
-
-        if (format === 'csv') {
-          const csv = buildAuditLogCsv(logs);
-          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="creator-audit-log-${req.creator.id}.csv"`,
-          );
-          return res.status(200).send(csv);
-        }
-
-        const pdf = buildAuditLogPdf({
+        const result = creatorActionService.updateFlowRate({
           creatorId: req.creator.id,
-          exportedAt: exportTimestamp,
-          logs,
+          flowRate: normalizeScalar(req.body.flowRate),
+          currency: isPresent(req.body.currency) ? String(req.body.currency) : null,
+          ipAddress: getRequestIp(req),
         });
-        res.setHeader('Content-Type', 'application/pdf');
+        return res.status(200).json({ success: true, data: result });
+      } catch (error) {
+        return handleActionError(res, error);
+      }
+    },
+  );
+
+  app.patch(
+    '/api/creator/videos/:videoId/visibility',
+    requireCreatorAuth(creatorAuthService),
+    async (req, res) => {
+      if (!isPresent(req.body?.visibility)) {
+        return res.status(400).json({ success: false, error: 'visibility is required' });
+      }
+      try {
+        const result = creatorActionService.updateVideoVisibility({
+          creatorId: req.creator.id,
+          videoId: req.params.videoId,
+          visibility: String(req.body.visibility),
+          ipAddress: getRequestIp(req),
+        });
+        return res.status(200).json({ success: true, data: result });
+      } catch (error) {
+        return handleActionError(res, error);
+      }
+    },
+  );
+
+  app.patch(
+    '/api/creator/coop-splits/:splitId',
+    requireCreatorAuth(creatorAuthService),
+    async (req, res) => {
+      if (!req.body?.splits || !Array.isArray(req.body.splits) || req.body.splits.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, error: 'splits must be a non-empty array' });
+      }
+      try {
+        const result = creatorActionService.updateCoopSplit({
+          creatorId: req.creator.id,
+          splitId: req.params.splitId,
+          splits: req.body.splits,
+          ipAddress: getRequestIp(req),
+        });
+        return res.status(200).json({ success: true, data: result });
+      } catch (error) {
+        return handleActionError(res, error);
+      }
+    },
+  );
+
+  app.get(
+    '/api/creator/audit-log',
+    requireCreatorAuth(creatorAuthService),
+    (req, res) => {
+      const logs = auditLogService.listByCreatorId(req.creator.id);
+      return res.status(200).json({ success: true, data: logs });
+    },
+  );
+
+  app.get(
+    '/api/creator/audit-log/export',
+    requireCreatorAuth(creatorAuthService),
+    (req, res) => {
+      const format = String(req.query.format || '').toLowerCase();
+      if (!['csv', 'pdf'].includes(format)) {
+        return res.status(400).json({ success: false, error: 'format must be one of: csv, pdf' });
+      }
+
+      const logs = auditLogService.listByCreatorId(req.creator.id);
+      const exportTimestamp = new Date().toISOString();
+
+      if (format === 'csv') {
+        const csv = buildAuditLogCsv(logs);
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader(
           'Content-Disposition',
-          `attachment; filename="creator-audit-log-${req.creator.id}.pdf"`,
+          `attachment; filename="creator-audit-log-${req.creator.id}.csv"`,
         );
-        return res.status(200).send(pdf);
+        return res.status(200).send(csv);
       }
-    );
 
-    app.get('/api/creator/:id/stats', (req, res) => {
-      try {
-        const creatorId = req.params.id;
-        const subscriberCount = database.getCreatorSubscriberCount(creatorId);
-        return res.status(200).json({ success: true, data: { creatorId, subscriberCount } });
-      } catch (error) {
-        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch stats' });
-      }
-    });
+      const pdf = buildAuditLogPdf({
+        creatorId: req.creator.id,
+        exportedAt: exportTimestamp,
+        logs,
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="creator-audit-log-${req.creator.id}.pdf"`,
+      );
+      return res.status(200).send(pdf);
+    },
+  );
 
+  // ── Error handlers ─────────────────────────────────────────────────────────
+  app.use(createErrorMonitoringMiddleware(endpointMonitoringService));
+  app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  });
 
-        // ── Error handlers ─────────────────────────────────────────────────────────
-        app.use(createErrorMonitoringMiddleware(endpointMonitoringService));
-        app.use((err, req, res, next) => {
-          console.error('Unhandled error:', err);
-          res.status(500).json({ success: false, error: 'Internal server error' });
-        });
+  // Video routes
+  app.use('/api/videos', createVideoRoutes(config, database, videoWorker));
 
-        // Video routes
-        app.use('/api/videos', createVideoRoutes(config, database, videoWorker));
+  // Merchant treasury routes
+  app.use('/api/v1/merchants', require('./routes/merchants'));
 
-        // Merchant treasury routes
-        app.use('/api/v1/merchants', require('./routes/merchants'));
+  // Device fingerprinting endpoints for fraud prevention
+  if (process.env.REDIS_URL || process.env.REDIS_HOST) {
+    const deviceService = new DeviceFingerprintService(getRedisClient());
+    app.set('deviceFingerprintService', deviceService);
+    app.use('/api/device', createDeviceRoutes);
+  }
 
-        // Device fingerprinting endpoints for fraud prevention
-        if (process.env.REDIS_URL || process.env.REDIS_HOST) {
-          const deviceService = new DeviceFingerprintService(getRedisClient());
-          app.set('deviceFingerprintService', deviceService);
-          app.use('/api/device', createDeviceRoutes);
-        }
+  // API Documentation with Swagger UI
+  app.use('/api/docs', createSwaggerRoutes);
 
-        // API Documentation with Swagger UI
-        app.use('/api/docs', createSwaggerRoutes);
-
-        // IP Intelligence management routes
-          if (ipIntelligenceService) {
-            app.use('/api/ip-intelligence', createIPIntelligenceRoutes({
-              ipIntelligenceService,
-              ipBlockingService,
-              ipMonitoringService
-            }));
-          }
-
-          // Behavioral biometric management routes
-          if (behavioralService) {
-            app.use('/api/behavioral', createBehavioralBiometricRoutes({
-              behavioralService
-            }));
-          }
-
-          // 404 handler
-          app.use((req, res) => {
-            res.status(404).json({ success: false, error: 'Endpoint not found' });
-          });
-
-          // Health check endpoint
-          app.get('/health', async (req, res) => {
-            const health = {
-              status: 'Healthy',
-              timestamp: new Date().toISOString(),
-              version: '1.0.0',
-              services: {
-                database: 'Unknown',
-                redis: 'Unknown',
-                rabbitmq: 'Unknown',
-                stellar: 'Unknown',
-                ipIntelligence: 'Unknown',
-                behavioralBiometric: 'Unknown'
-              },
-            };
-
-            let isDegraded = false;
-
-            // Check Database
-            try {
-              database.db.prepare('SELECT 1').get();
-              health.services.database = 'Connected';
-            } catch (error) {
-              health.services.database = 'Offline';
-              isDegraded = true;
-            }
-
-            // Check Redis
-            try {
-              if (process.env.REDIS_URL || process.env.REDIS_HOST) {
-                const redisClient = getRedisClient();
-                const ping = await redisClient.ping();
-                health.services.redis = ping === 'PONG' ? 'Connected' : 'Offline';
-                if (ping !== 'PONG') isDegraded = true;
-              } else {
-                health.services.redis = 'Not Configured';
-              }
-            } catch (error) {
-              health.services.redis = 'Offline';
-              isDegraded = true;
-            }
-
-            // Check RabbitMQ
-            try {
-              if (backgroundWorker && backgroundWorker.rabbitmq) {
-                const status = backgroundWorker.getStatus();
-                health.services.rabbitmq = status.connected ? 'Connected' : 'Offline';
-                if (!status.connected) isDegraded = true;
-              } else {
-                health.services.rabbitmq = 'Not Configured';
-              }
-            } catch (error) {
-              health.services.rabbitmq = 'Offline';
-              isDegraded = true;
-            }
-
-            // Check Stellar/Soroban
-            try {
-              if (subscriptionVerifier && subscriptionVerifier.server) {
-                await subscriptionVerifier.server.getLatestLedger();
-                health.services.stellar = 'Connected';
-              } else {
-                health.services.stellar = 'Not Configured';
-              }
-            } catch (error) {
-              health.services.stellar = 'Offline';
-              isDegraded = true;
-            }
-
-            // Check IP Intelligence
-            try {
-              if (ipIntelligenceService) {
-                const stats = ipIntelligenceService.getServiceStats();
-                health.services.ipIntelligence = 'Running';
-              } else {
-                health.services.ipIntelligence = 'Not Configured';
-              }
-            } catch (error) {
-              health.services.ipIntelligence = 'Error';
-              isDegraded = true;
-            }
-
-            // Check Behavioral Biometric
-            try {
-              if (behavioralService) {
-                const stats = behavioralService.getServiceStats();
-                health.services.behavioralBiometric = 'Running';
-              } else {
-                health.services.behavioralBiometric = 'Not Configured';
-              }
-            } catch (error) {
-              health.services.behavioralBiometric = 'Error';
-              isDegraded = true;
-            }
-
-            if (isDegraded) {
-              health.status = 'Degraded';
-            }
-
-            return res.status(isDegraded ? 200 : 200).json(health); // Reporting degraded status still returns 200 for status page transparency
-          });
-
-          app.use((req, res) => res.status(404).json({ success: false, error: 'Not found' }));
-
-          // Global error handler with Sentry integration
-          app.use((err, req, res, next) => {
-            // Log error with structured logging
-            const errorContext = {
-              traceId: req.logger?.fields?.traceId,
-              method: req.method,
-              path: req.path,
-              walletAddress: req.user?.publicKey || req.body?.walletAddress,
-              endpoint: req.originalUrl,
-            };
-
-            // Capture with Sentry
-            errorTracking.captureException(err, errorContext);
-
-            // Return error response
-            res.status(err.statusCode || err.status || 500).json({
-              success: false,
-              error: process.env.NODE_ENV === 'production'
-                ? 'Internal server error'
-                : err.message,
-              ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
-            });
-          });
+  // 404 handler
+  app.use((req, res) => {
+    res.status(404).json({ success: false, error: 'Endpoint not found' });
+  });
 
   return app;
 }
@@ -952,74 +862,76 @@ async function createApp(dependencies = {}) {
 // ── Private helpers ────────────────────────────────────────────────────────
 
 function extractToken(req) {
-        const authHeader = req.headers.authorization || '';
-        if (authHeader.startsWith('Bearer ')) return authHeader.slice('Bearer '.length).trim();
-        return req.query.token || req.body?.token || null;
-      }
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice('Bearer '.length).trim();
+  return req.query.token || req.body?.token || null;
+}
 
 function requireCreatorAuth(creatorAuthService) {
-        return (req, res, next) => {
-          const token = extractToken(req);
-          if (!token) {
-            return res.status(401).json({ success: false, error: 'Authentication required' });
-          }
-          try {
-            req.creator = creatorAuthService.verifyToken(token);
-            return next();
-          } catch (error) {
-            return res.status(401).json({ success: false, error: error.message });
-          }
-        };
-      }
+  return (req, res, next) => {
+    const token = extractToken(req);
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    try {
+      req.creator = creatorAuthService.verifyToken(token);
+      return next();
+    } catch (error) {
+      return res.status(401).json({ success: false, error: error.message });
+    }
+  };
+}
 
 function normalizeScalar(value) {
-        return String(value).trim();
-      }
+  return String(value).trim();
+}
 
 function isPresent(value) {
-        return value !== undefined && value !== null && String(value).trim() !== '';
-      }
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
 
 function handleActionError(res, error) {
-        return res
-          .status(error.statusCode || 500)
-          .json({ success: false, error: error.message || 'Request failed' });
-      }
+  return res
+    .status(error.statusCode || 500)
+    .json({ success: false, error: error.message || 'Request failed' });
+}
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
 if (require.main === module) {
-      // Async bootstrap to initialize Apollo Server and Vault
-      (async () => {
+  // Async bootstrap to initialize Apollo Server and Vault
+  (async () => {
+    try {
+      // Initialize Vault if enabled
+      if (vaultService) {
         try {
-          // Initialize Vault if enabled
-          if (vaultService) {
-            try {
-              await vaultService.initialize();
-              console.log('[Vault] Vault service initialized successfully');
-            } catch (vaultError) {
-              console.error('[Vault] Vault initialization failed, continuing with environment variables:', vaultError.message);
-            }
-          }
-
-          // Create app with Vault support
-          const app = await createApp();
-          const config = await loadConfig(process.env, vaultService);
-          const port = config.port;
-
-          // Setup GraphQL endpoint with Apollo Server
-          const database = new AppDatabase(config.database.filename);
-          await setupApolloServer(app, database);
-          console.log('GraphQL endpoint available at /graphql');
-
-          // Start Express server
-          app.listen(port, () => console.log(`SubStream API running on port ${port}`));
-        } catch (error) {
-          console.error('Failed to start server:', error);
-          process.exit(1);
+          await vaultService.initialize();
+          console.log('[Vault] Vault service initialized successfully');
+        } catch (vaultError) {
+          console.error('[Vault] Vault initialization failed, continuing with environment variables:', vaultError.message);
         }
-      })();
-    }
+      }
 
-    module.exports = app;
-    module.exports.createApp = createApp;
+      // Create app with Vault support
+      const app = await createApp();
+      const config = await loadConfig(process.env, vaultService);
+      const port = config.port;
+
+      // Setup GraphQL endpoint with Apollo Server
+      const database = new AppDatabase(config.database.filename);
+      await setupApolloServer(app, database);
+      console.log('GraphQL endpoint available at /graphql');
+
+      // Start Express server
+      app.listen(port, () => console.log(`SubStream API running on port ${port}`));
+    } catch (error) {
+      console.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  })();
+}
+
+module.exports = { createApp };
+if (require.main === module) {
+  module.exports = createApp();
+}
