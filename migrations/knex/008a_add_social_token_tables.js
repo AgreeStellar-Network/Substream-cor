@@ -20,7 +20,7 @@ exports.up = function(knex) {
     
     // Social token sessions table for balance re-verification
     .createTable('social_token_sessions', function(table) {
-      table.string('session_id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('session_id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('user_address').notNullable().index();
       table.string('content_id').notNullable().references('id').inTable('content').onDelete('CASCADE');
       table.string('asset_code').notNullable().index();
@@ -34,12 +34,12 @@ exports.up = function(knex) {
       // Indexes for performance
       table.index(['user_address', 'still_valid']);
       table.index(['content_id', 'still_valid']);
-      table.index(['last_verified']);
     })
+
     
     // Social token access logs for analytics
     .createTable('social_token_access_logs', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('user_address').notNullable().index();
       table.string('content_id').notNullable().references('id').inTable('content').onDelete('CASCADE');
       table.boolean('has_access').notNullable().index();

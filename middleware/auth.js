@@ -1,7 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { ethers } = require('ethers');
+const { AuthService } = require('../src/services/auth.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Initialize enhanced authentication service
+const authService = new AuthService();
 
 // Generate nonce for SIWE
 const generateNonce = () => {
@@ -21,20 +25,25 @@ const verifySignature = (message, signature, address) => {
   }
 };
 
-// Generate JWT token
+// Generate JWT token (using enhanced service)
 const generateToken = (address, tier = 'bronze') => {
-  return jwt.sign(
-    { 
-      address: address.toLowerCase(),
-      tier,
-      iat: Math.floor(Date.now() / 1000)
-    },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+  const member = {
+    id: address.toLowerCase(),
+    email: `${address.toLowerCase()}@example.com`,
+    organizationId: 'default',
+    role: 'user',
+    permissions: ['read']
+  };
+  
+  return authService.generateAccessToken(member);
 };
 
-// Verify JWT middleware
+// Generate refresh token
+const generateRefreshToken = (address) => {
+  return authService.generateRefreshToken(address.toLowerCase(), null);
+};
+
+// Enhanced JWT verification middleware with rotation support
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -46,16 +55,32 @@ const authenticateToken = (req, res, next) => {
     });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Invalid or expired token' 
-      });
+  try {
+    const payload = authService.verifyAccessToken(token);
+    
+    // Check if token needs rotation
+    if (authService.shouldRotateToken(token)) {
+      // Add rotation hint to response headers
+      res.set('X-Token-Rotation-Required', 'true');
     }
-    req.user = user;
+    
+    req.user = {
+      id: payload.sub,
+      email: payload.email,
+      organizationId: payload.organizationId,
+      role: payload.role,
+      permissions: payload.permissions,
+      sessionId: payload.sessionId,
+      jti: payload.jti
+    };
+    
     next();
-  });
+  } catch (error) {
+    return res.status(403).json({ 
+      success: false, 
+      error: error.message || 'Invalid or expired token' 
+    });
+  }
 };
 
 // Tier-based access middleware
@@ -76,11 +101,70 @@ const requireTier = (requiredTier) => {
   };
 };
 
+// Token rotation endpoint handler
+const rotateTokens = async (req, res) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken) {
+    return res.status(400).json({
+      success: false,
+      error: 'Refresh token required'
+    });
+  }
+  
+  try {
+    const tokens = await authService.rotateTokens(refreshToken);
+    
+    res.json({
+      success: true,
+      data: tokens,
+      message: 'Tokens rotated successfully'
+    });
+  } catch (error) {
+    res.status(403).json({
+      success: false,
+      error: error.message || 'Token rotation failed'
+    });
+  }
+};
+
+// Token revocation endpoint
+const revokeToken = (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      error: 'Token required'
+    });
+  }
+  
+  try {
+    const payload = authService.verifyAccessToken(token);
+    authService.blacklistToken(payload.jti);
+    
+    res.json({
+      success: true,
+      message: 'Token revoked successfully'
+    });
+  } catch (error) {
+    res.status(403).json({
+      success: false,
+      error: error.message || 'Token revocation failed'
+    });
+  }
+};
+
 module.exports = {
   generateNonce,
   nonces,
   verifySignature,
   generateToken,
+  generateRefreshToken,
   authenticateToken,
-  requireTier
+  rotateTokens,
+  revokeToken,
+  requireTier,
+  authService // Export service for direct access
 };

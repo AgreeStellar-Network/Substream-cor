@@ -2,7 +2,7 @@ exports.up = function(knex) {
   return knex.schema
     // ActivityPub actors table
     .createTable('activitypub_actors', function(table) {
-      table.string('creator_address').primary().references('address').inTable('creators').onDelete('CASCADE');
+      table.string('creator_address').primary().references('id').inTable('creators').onDelete('CASCADE');
       table.text('public_key').notNullable();
       table.text('private_key').notNullable();
       table.string('actor_id').notNullable().unique();
@@ -18,7 +18,7 @@ exports.up = function(knex) {
     // ActivityPub followers table
     .createTable('activitypub_followers', function(table) {
       table.increments('id').primary();
-      table.string('creator_address').notNullable().references('address').inTable('creators').onDelete('CASCADE');
+      table.string('creator_address').notNullable().references('id').inTable('creators').onDelete('CASCADE');
       table.string('follower_actor').notNullable();
       table.string('follower_inbox');
       table.string('follower_shared_inbox');
@@ -35,7 +35,7 @@ exports.up = function(knex) {
     // ActivityPub activities table (sent activities)
     .createTable('activitypub_activities', function(table) {
       table.increments('id').primary();
-      table.string('creator_address').notNullable().references('address').inTable('creators').onDelete('CASCADE');
+      table.string('creator_address').notNullable().references('id').inTable('creators').onDelete('CASCADE');
       table.string('activity_id').notNullable().unique();
       table.string('activity_type').notNullable();
       table.string('object_type').notNullable();
@@ -53,7 +53,7 @@ exports.up = function(knex) {
     // ActivityPub engagements table (received activities)
     .createTable('activitypub_engagements', function(table) {
       table.increments('id').primary();
-      table.string('creator_address').notNullable().references('address').inTable('creators').onDelete('CASCADE');
+      table.string('creator_address').notNullable().references('id').inTable('creators').onDelete('CASCADE');
       table.string('activity_type').notNullable();
       table.string('activity_actor').notNullable();
       table.string('activity_id').notNullable();
@@ -69,7 +69,7 @@ exports.up = function(knex) {
     // Federation queue table (for background processing)
     .createTable('federation_queue', function(table) {
       table.increments('id').primary();
-      table.string('creator_address').notNullable().references('address').inTable('creators').onDelete('CASCADE');
+      table.string('creator_address').notNullable().references('id').inTable('creators').onDelete('CASCADE');
       table.string('content_id').notNullable().references('id').inTable('content').onDelete('CASCADE');
       table.string('activity_type').notNullable().defaultTo('Announce');
       table.json('activity_data').notNullable();

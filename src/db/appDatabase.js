@@ -7,6 +7,16 @@ const Database = require('better-sqlite3');
  * SQLite-backed application database wrapper.
  */
 class AppDatabase {
+  constructor(filename) {
+    this.filename = filename;
+    this.ensureDirectory();
+    this.db = new Database(filename);
+    this.initializeSchema();
+    this.ensureSubscriberCountColumn();
+    this.ensureWebhookColumns();
+    this.ensureSubscriptionRiskColumns();
+  }
+
   /**
    * Insert a notification for a creator.
    * @param {{creatorId: string, type: string, message: string, metadata?: object, timestamp?: string}} notification
@@ -27,52 +37,35 @@ class AppDatabase {
       timestamp
     );
     return this.db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
-    constructor(filename) {
-      this.filename = filename;
-      this.ensureDirectory();
-      this.db = new DatabaseSync(filename);
-      this.initializeSchema();
-      this.ensureSubscriberCountColumn();
-      this.ensureSubscriptionRiskColumns();
-    }
-
-    /**
-     * List notifications for a creator (most recent first).
-     * @param {string} creatorId
-     * @returns {object[]}
-     */
-    listNotificationsByCreatorId(creatorId) {
-      return this.db.prepare(
-        'SELECT * FROM notifications WHERE creator_id = ? ORDER BY timestamp DESC, id DESC'
-      ).all(creatorId);
-    }
-
-    /**
-     * Mark a notification as read.
-     * @param {string} notificationId
-     * @returns {object}
-     */
-    markNotificationAsRead(notificationId) {
-      this.db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(notificationId);
-      return this.db.prepare('SELECT * FROM notifications WHERE id = ?').get(notificationId);
-    }
-    /**
-     * @param {string} filename SQLite filename or `:memory:`.
-     */
-  constructor(filename) {
-    this.filename = filename;
-    this.ensureDirectory();
-    this.db = new Database(filename);
-    this.initializeSchema();
-    this.ensureSubscriberCountColumn();
-    this.ensureWebhookColumns();
-    this.ensureSubscriptionRiskColumns();
   }
+
+  /**
+   * List notifications for a creator (most recent first).
+   * @param {string} creatorId
+   * @returns {object[]}
+   */
+  listNotificationsByCreatorId(creatorId) {
+    return this.db.prepare(
+      'SELECT * FROM notifications WHERE creator_id = ? ORDER BY timestamp DESC, id DESC'
+    ).all(creatorId);
+  }
+
+  /**
+   * Mark a notification as read.
+   * @param {string} notificationId
+   * @returns {object}
+   */
+  markNotificationAsRead(notificationId) {
+    this.db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(notificationId);
+    return this.db.prepare('SELECT * FROM notifications WHERE id = ?').get(notificationId);
+  }
+
 
   /**
    * Initialize the database schema
    */
   initializeSchema() {
+    this.db.exec(`
       PRAGMA foreign_keys = ON;
 
       CREATE TABLE IF NOT EXISTS creators (
@@ -136,6 +129,9 @@ class AppDatabase {
         active INTEGER NOT NULL DEFAULT 1,
         subscribed_at TEXT NOT NULL,
         unsubscribed_at TEXT,
+        PRIMARY KEY (creator_id, wallet_address)
+      );
+
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
         creator_id TEXT NOT NULL REFERENCES creators(id),
@@ -155,12 +151,6 @@ class AppDatabase {
         sent INTEGER NOT NULL DEFAULT 0,
         timestamp TEXT NOT NULL
       );
-        PRIMARY KEY (creator_id, wallet_address)
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_creator_audit_logs_creator_timestamp
-        ON creator_audit_logs (creator_id, timestamp DESC);
-      ON creator_audit_logs (creator_id, timestamp DESC);
 
       CREATE TABLE IF NOT EXISTS comments (
         id TEXT PRIMARY KEY,
@@ -172,10 +162,6 @@ class AppDatabase {
         updated_at TEXT NOT NULL
       );
 
-      CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments (post_id);
-      CREATE INDEX IF NOT EXISTS idx_comments_creator_id ON comments (creator_id);
-      CREATE INDEX IF NOT EXISTS idx_comments_user_address ON comments (user_address);
-
       CREATE TABLE IF NOT EXISTS creator_subdomains (
         id TEXT PRIMARY KEY,
         creator_id TEXT NOT NULL REFERENCES creators(id),
@@ -185,138 +171,74 @@ class AppDatabase {
         updated_at TEXT NOT NULL
       );
 
+      CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments (post_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_creator_id ON comments (creator_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_user_address ON comments (user_address);
+      CREATE INDEX IF NOT EXISTS idx_creator_audit_logs_creator_timestamp ON creator_audit_logs (creator_id, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_creator_subdomains_subdomain ON creator_subdomains (subdomain);
       CREATE INDEX IF NOT EXISTS idx_creator_subdomains_creator_id ON creator_subdomains (creator_id);
     `);
 
-      this.ensureSubscriberCountColumn();
-    }
+    this.ensureSubscriberCountColumn();
+  }
 
-    /**
-     * Ensure the parent directory for the database file exists.
-     */
-    ensureDirectory() {
-      if (this.filename !== ':memory:') {
-        const dir = path.dirname(this.filename);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
+  ensureDirectory() {
+    if (this.filename !== ':memory:') {
+      const dir = path.dirname(this.filename);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
     }
+  }
 
-    /**
-     * Ensure the creators table has a subscriber_count column.
-     * This is a noop for in-memory DBs that already have the column.
-     */
-    ensureSubscriberCountColumn() {
-      try {
-        const info = this.db.prepare('PRAGMA table_info(creators);').all();
-        const hasColumn = info.some((col) => col.name === 'subscriber_count');
-        if (!hasColumn) {
-          this.db.exec('ALTER TABLE creators ADD COLUMN subscriber_count INTEGER DEFAULT 0');
-        }
-      } catch (error) {
-        console.warn('ensureSubscriberCountColumn failed:', error.message);
-      }
-    }
-
-    /**
-     * Ensure the creators table has webhook columns.
-     */
-    ensureWebhookColumns() {
-      try {
-        const info = this.db.prepare('PRAGMA table_info(creators);').all();
-        const hasUrl = info.some((col) => col.name === 'webhook_url');
-        const hasSecret = info.some((col) => col.name === 'webhook_secret');
-        
-        if (!hasUrl) {
-          this.db.exec('ALTER TABLE creators ADD COLUMN webhook_url TEXT');
-        }
-        if (!hasSecret) {
-          this.db.exec('ALTER TABLE creators ADD COLUMN webhook_secret TEXT');
-        }
-      } catch (error) {
-        console.warn('ensureWebhookColumns failed:', error.message);
-      }
-    }
-
-    /**
-     * Ensure subscriptions table has fields used by low-balance risk checks.
-     *
-     * @returns {void}
-     */
-    ensureSubscriptionRiskColumns() {
-      try {
-        const info = this.db
-          .prepare("PRAGMA table_info(subscriptions);")
-          .all();
-
-        const hasBalance = info.some((col) => col.name === 'balance');
-        const hasDailySpend = info.some((col) => col.name === 'daily_spend');
-        const hasUserEmail = info.some((col) => col.name === 'user_email');
-        const hasRiskStatus = info.some((col) => col.name === 'risk_status');
-        const hasEstimatedRunOutAt = info.some((col) => col.name === 'estimated_run_out_at');
-
-        if (!hasBalance) {
-          this.db.exec(`ALTER TABLE subscriptions ADD COLUMN balance REAL`);
-        }
-
-        if (!hasDailySpend) {
-          this.db.exec(`ALTER TABLE subscriptions ADD COLUMN daily_spend REAL`);
-        }
-
-        if (!hasUserEmail) {
-          this.db.exec(`ALTER TABLE subscriptions ADD COLUMN user_email TEXT`);
-        }
-
-        if (!hasRiskStatus) {
-          this.db.exec(`ALTER TABLE subscriptions ADD COLUMN risk_status TEXT`);
-        }
-
-        if (!hasEstimatedRunOutAt) {
-          this.db.exec(`ALTER TABLE subscriptions ADD COLUMN estimated_run_out_at TEXT`);
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('ensureSubscriptionRiskColumns failed:', error.message);
-      }
-    }
-
-    /**
-     * Execute work inside a database transaction.
-     *
-     * @template T
-     * @param {() => T} callback Work to execute.
-     * @returns {T}
-     */
-    transaction(callback) {
-      this.db.exec('BEGIN');
-      try {
-        const result = callback();
-        this.db.exec('COMMIT');
-        return result;
-      } catch (error) {
-        this.db.exec('ROLLBACK');
-        throw error;
-      }
-
-      if (!hasMigratedFromStripe) {
-        this.db.exec(`ALTER TABLE subscriptions ADD COLUMN migrated_from_stripe INTEGER DEFAULT 0`);
-      }
-
-      if (!hasStripePlanId) {
-        this.db.exec(`ALTER TABLE subscriptions ADD COLUMN stripe_plan_id TEXT`);
+  ensureSubscriberCountColumn() {
+    try {
+      const info = this.db.prepare('PRAGMA table_info(creators);').all();
+      const hasColumn = info.some((col) => col.name === 'subscriber_count');
+      if (!hasColumn) {
+        this.db.exec('ALTER TABLE creators ADD COLUMN subscriber_count INTEGER DEFAULT 0');
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
+      console.warn('ensureSubscriberCountColumn failed:', error.message);
+    }
+  }
+
+  ensureWebhookColumns() {
+    try {
+      const info = this.db.prepare('PRAGMA table_info(creators);').all();
+      const hasUrl = info.some((col) => col.name === 'webhook_url');
+      const hasSecret = info.some((col) => col.name === 'webhook_secret');
+      
+      if (!hasUrl) {
+        this.db.exec('ALTER TABLE creators ADD COLUMN webhook_url TEXT');
+      }
+      if (!hasSecret) {
+        this.db.exec('ALTER TABLE creators ADD COLUMN webhook_secret TEXT');
+      }
+    } catch (error) {
+      console.warn('ensureWebhookColumns failed:', error.message);
+    }
+  }
+
+  ensureSubscriptionRiskColumns() {
+    try {
+      const info = this.db.prepare("PRAGMA table_info(subscriptions);").all();
+      const columns = ["balance", "daily_spend", "user_email", "risk_status", "estimated_run_out_at"];
+      for (const col of columns) {
+        if (!info.some((c) => c.name === col)) {
+          this.db.exec(`ALTER TABLE subscriptions ADD COLUMN ${col} ${col === 'balance' || col === 'daily_spend' ? 'REAL' : 'TEXT'}`);
+        }
+      }
+    } catch (error) {
       console.warn('ensureSubscriptionRiskColumns failed:', error.message);
     }
+  }
 
-    /**
-     * Ensure a creator row exists, inserting a stub if absent.
-     *
-     * @param {string} creatorId Creator identifier.
-     */
+  /**
+   * Ensure a creator row exists.
+   *
+   * @param {string} creatorId
+   */
   ensureCreator(creatorId) {
     this.db
       .prepare(
@@ -543,8 +465,6 @@ class AppDatabase {
       const row = this.db
         .prepare('SELECT subscriber_count AS subscriberCount FROM creators WHERE id = ?')
         .get(creatorId);
-      .prepare(`SELECT subscriber_count AS subscriberCount FROM creators WHERE id = ?`)
-        .get(creatorId);
 
       return (row && Number(row.subscriberCount)) || 0;
     }
@@ -563,8 +483,6 @@ class AppDatabase {
           .prepare(
             'UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?',
           )
-          .run(creatorId);
-        .prepare(`UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?`)
           .run(creatorId);
 
         return this.getCreatorSubscriberCount(creatorId);
@@ -586,34 +504,10 @@ class AppDatabase {
             'UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?',
           )
           .run(creatorId);
-        `UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?`,
-        )
-        .run(creatorId);
 
-      return this.getCreatorSubscriberCount(creatorId);
-    });
-  }
-
-  /**
-   * Set the subscriber count explicitly.
-   *
-   * @param {string} creatorId
-   * @param {number} count
-   * @returns {number}
-   */
-  setCreatorSubscriberCount(creatorId, count) {
-    return this.transaction(() => {
-      this.ensureCreator(creatorId);
-      const safe = Math.max(0, Math.floor(Number(count) || 0));
-      this.db
-        .prepare('UPDATE creators SET subscriber_count = ? WHERE id = ?')
-        .run(safe, creatorId);
-        .prepare(`UPDATE creators SET subscriber_count = ? WHERE id = ?`)
-        .run(safe, creatorId);
-
-      return this.getCreatorSubscriberCount(creatorId);
-    });
-  }
+        return this.getCreatorSubscriberCount(creatorId);
+      });
+    }
 
   /**
    * Get a subscription row for a creator and wallet.
@@ -629,12 +523,6 @@ class AppDatabase {
       )
       .get(creatorId, walletAddress);
     return row || null;
-  }
-
-        `SELECT creator_id AS creatorId, wallet_address AS walletAddress, active, subscribed_at AS subscribedAt, unsubscribed_at AS unsubscribedAt FROM subscriptions WHERE creator_id = ? AND wallet_address = ?`,
-      )
-      .get(creatorId, walletAddress);
-return row || null;
   }
 
 /**
@@ -771,24 +659,7 @@ createOrActivateSubscription(creatorId, walletAddress) {
       .run(creatorId);
 
     return { changed: true, count: this.getCreatorSubscriberCount(creatorId) };
-    // reactivate
-    this.db
-      .prepare(`UPDATE subscriptions SET active = 1, subscribed_at = ?, unsubscribed_at = NULL WHERE creator_id = ? AND wallet_address = ?`)
-      .run(now, creatorId, walletAddress);
-  } else {
-    this.db
-      .prepare(`INSERT INTO subscriptions (creator_id, wallet_address, active, subscribed_at) VALUES (?, ?, 1, ?)`)
-      .run(creatorId, walletAddress, now);
-  }
-
-      // Increment cached count
-      this.db
-      .prepare(`UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?`)
-      .run(creatorId);
-
-  const newCount = this.getCreatorSubscriberCount(creatorId);
-  return { changed: true, count: newCount };
-});
+  });
   }
 
 /**
@@ -822,16 +693,6 @@ deactivateSubscription(creatorId, walletAddress) {
       .run(creatorId);
 
     return { changed: true, count: this.getCreatorSubscriberCount(creatorId) };
-        .prepare(`UPDATE subscriptions SET active = 0, unsubscribed_at = ? WHERE creator_id = ? AND wallet_address = ?`)
-      .run(now, creatorId, walletAddress);
-
-    // Decrement cached count, clamp at 0
-    this.db
-      .prepare(`UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?`)
-      .run(creatorId);
-
-    const newCount = this.getCreatorSubscriberCount(creatorId);
-    return { changed: true, count: newCount };
   });
 }
 
@@ -847,12 +708,6 @@ countActiveSubscriptions(creatorId) {
     .get(creatorId);
   return (row && Number(row.ct)) || 0;
 }
-
-      .prepare(`SELECT COUNT(1) AS ct FROM subscriptions WHERE creator_id = ? AND active = 1`)
-  .get(creatorId);
-
-return (row && Number(row.ct)) || 0;
-  }
 
 /**
  * Get comments by post ID.

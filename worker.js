@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 
+const dotenv = require('dotenv');
+const { initTracing } = require('./src/utils/opentelemetry');
+
+dotenv.config();
+initTracing({ serviceName: 'substream-protocol-backend-worker', serviceVersion: '1.0.0' });
+
 const { loadConfig } = require('./src/config');
 const { BackgroundWorkerService } = require('./src/services/backgroundWorkerService');
 const { SorobanIndexerWorker } = require('./src/services/sorobanIndexerWorker');
+const { ReconciliationWorker } = require('./src/services/reconciliationWorker');
 const { getVaultService } = require('./src/services/vaultService');
 const { getSorobanIndexerFailoverHandler, resetSorobanIndexerFailoverHandler } = require('./src/services/sorobanIndexerFailover');
 const { getRedisCacheFailoverHandler, resetRedisCacheFailoverHandler } = require('./src/services/redisCacheFailover');
@@ -172,6 +179,27 @@ if (args.includes('--soroban')) {
     });
   }
 
+} else if (args.includes('--reconciliation')) {
+  // Start Reconciliation Worker
+  console.log('[Worker] Starting Reconciliation Worker...');
+  const reconciliationWorker = new ReconciliationWorker();
+
+  if (args.includes('--health')) {
+    // Health check for reconciliation worker
+    console.log('[Worker] Reconciliation Worker health check');
+    console.log(JSON.stringify({
+      status: 'healthy',
+      isRunning: reconciliationWorker.isRunning,
+      stats: reconciliationWorker.getStats()
+    }, null, 2));
+    process.exit(0);
+  } else {
+    reconciliationWorker.start().catch(error => {
+      console.error('Failed to start Reconciliation worker:', error);
+      process.exit(1);
+    });
+  }
+
 } else {
   // Start Main Background Worker + Webhook Dispatcher
   if (args.includes('--health')) {
@@ -191,13 +219,34 @@ if (args.includes('--soroban')) {
   } else {
     startWorker();
 
-    // === NEW: Start Merchant Webhook Dispatcher Worker ===
+    // === Start Merchant Webhook Dispatcher Worker ===
     console.log('[Worker] Starting Merchant Webhook Dispatcher...');
     try {
       require('./src/workers/webhookWorker');
     } catch (error) {
       console.error('[Worker] Failed to start Webhook Dispatcher:', error.message);
       // Don't crash the whole worker if webhook fails to start
+    }
+
+    // === NEW: Start Enhanced Churn Risk Worker ===
+    console.log('[Worker] Starting Enhanced Churn Risk Worker...');
+    try {
+      const churnRiskWorker = new EnhancedChurnRiskWorker({
+        runInterval: 24 * 60 * 60 * 1000, // 24 hours
+        initialDelay: 10 * 60 * 1000, // 10 minutes
+        merchantBatchSize: 10,
+        subscriberBatchSize: 1000,
+        enableDetailedLogging: process.env.CHURN_RISK_DEBUG === 'true'
+      });
+      
+      churnRiskWorker.start().then(() => {
+        console.log('[Worker] Enhanced Churn Risk Worker started successfully');
+      }).catch(error => {
+        console.error('[Worker] Failed to start Enhanced Churn Risk Worker:', error.message);
+      });
+    } catch (error) {
+      console.error('[Worker] Failed to initialize Enhanced Churn Risk Worker:', error.message);
+      // Don't crash the whole worker if churn risk worker fails to start
     }
   }
 }

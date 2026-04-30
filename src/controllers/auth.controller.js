@@ -1,6 +1,8 @@
-const { AuthService } = require('../services/auth.service');
+﻿const { AuthService } = require('../services/auth.service');
 const { OrganizationService } = require('../services/organization.service');
 const { rbacMiddleware } = require('../middleware/rbac.middleware');
+const { validateDto } = require('../middleware/validate-dto.middleware');
+const { LoginDto, VerifyStellarSignatureDto, CreateApiKeyDto } = require('../dto/auth.dto');
 
 class AuthController {
   constructor() {
@@ -374,3 +376,4 @@ class AuthController {
 }
 
 module.exports = { AuthController };
+

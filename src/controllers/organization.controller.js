@@ -1,6 +1,8 @@
-const { OrganizationService } = require('../services/organization.service');
+﻿const { OrganizationService } = require('../services/organization.service');
 const { AuthService } = require('../services/auth.service');
 const { rbacMiddleware } = require('../middleware/rbac.middleware');
+const { validateDto } = require('../middleware/validate-dto.middleware');
+const { CreateOrganizationDto, UpdateOrganizationDto, AddMemberDto, UpdateMemberDto } = require('../dto/organization.dto');
 
 class OrganizationController {
   constructor() {
@@ -370,3 +372,4 @@ class OrganizationController {
 }
 
 module.exports = { OrganizationController };
+

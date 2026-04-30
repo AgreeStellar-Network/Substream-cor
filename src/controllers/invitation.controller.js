@@ -1,5 +1,7 @@
-const { OrganizationService } = require('../services/organization.service');
+﻿const { OrganizationService } = require('../services/organization.service');
 const { EmailService } = require('../services/email.service');
+const { validateDto } = require('../middleware/validate-dto.middleware');
+const { CreateInvitationDto, AcceptInvitationDto } = require('../dto/invitation.dto');
 
 class InvitationController {
   constructor() {
@@ -438,3 +440,4 @@ class InvitationController {
 }
 
 module.exports = { InvitationController };
+

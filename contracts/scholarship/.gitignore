@@ -1,0 +1,25 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+*.wasm
+*.wasm.gz
+
+# Test files
+test-output.json

@@ -4,7 +4,7 @@
  */
 exports.up = function(knex) {
   return knex.schema.createTable('merchants', (table) => {
-    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+    table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
     table.string('name').notNullable();
     table.string('base_currency').notNullable().defaultTo('USD');
     table.timestamp('created_at').defaultTo(knex.fn.now());

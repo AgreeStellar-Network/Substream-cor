@@ -4,6 +4,7 @@ const tenantConfigurationService = require('../src/services/tenantConfigurationS
 const dataExportService = require('../src/services/dataExportService');
 const websocketRateLimitService = require('../src/services/websocketRateLimitService');
 const { getDatabase } = require('../src/db/appDatabase');
+const { AuthService } = require('../src/services/auth.service');
 
 describe('Integration Tests - All Four Features', () => {
   let db;
@@ -12,6 +13,7 @@ describe('Integration Tests - All Four Features', () => {
   
   beforeAll(async () => {
     db = getDatabase();
+    const authService = new AuthService();
     
     // Create test tenant
     const [tenant] = await db('tenants').insert({
@@ -22,7 +24,15 @@ describe('Integration Tests - All Four Features', () => {
     }).returning('*');
     
     testTenantId = tenant.id;
-    authToken = 'Bearer mock-integration-token';
+    const member = {
+      id: 'member-integration-test',
+      email: 'integration-test@example.com',
+      organizationId: testTenantId,
+      role: 'ADMIN',
+      permissions: ['merchants:read', 'merchants:write']
+    };
+
+    authToken = `Bearer ${authService.generateMemberToken(member)}`;
     
     // Initialize all services
     await tenantConfigurationService.initialize();

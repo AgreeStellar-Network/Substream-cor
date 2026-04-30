@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const tenantConfigurationService = require('../../src/services/tenantConfigurationService');
 const { getDatabase } = require('../../src/db/appDatabase');
+const {
+  ADMIN_ROLES,
+  requireRbacUser,
+  requireRole
+} = require('../../middleware/merchantConfigRbac');
+
+router.use(requireRbacUser, requireRole(ADMIN_ROLES));
 
 /**
  * GET /api/v1/admin/tenants/:tenantId/flags

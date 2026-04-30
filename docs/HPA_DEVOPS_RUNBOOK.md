@@ -349,7 +349,14 @@ watch kubectl get pods -n substream -l app=substream-worker
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| DB_MAX_CONNECTIONS | 20 | Maximum database connections |
+| DB_POOL_MAX / DB_MAX_CONNECTIONS | 10 | Maximum PostgreSQL connections per pod. Keep this low enough that `maxReplicas * DB_POOL_MAX` stays below the database connection budget. |
+| DB_POOL_MIN | 0 | Minimum idle PostgreSQL connections per pod. Defaults to zero so scaled-out idle pods do not reserve database sessions. |
+| DB_POOL_IDLE_TIMEOUT_MS | 10000 | Time before idle PostgreSQL clients are released. |
+| DB_POOL_CONNECTION_TIMEOUT_MS | 3000 | Time to wait for a PostgreSQL connection before failing fast. |
+| DB_STATEMENT_TIMEOUT_MS | 30000 | PostgreSQL statement timeout applied to pooled clients. |
+| DB_IDLE_IN_TRANSACTION_TIMEOUT_MS | 15000 | Timeout for clients left idle in a transaction. |
+| DB_TENANT_POOL_CACHE_MAX | 10 | Maximum tenant database pools cached per process before least-recently-used eviction. |
+| DB_TENANT_POOL_MAX | 4 | Maximum PostgreSQL connections for each tenant-specific Knex pool. |
 | REDIS_HOST | redis-service | Redis server host |
 | REDIS_PORT | 6379 | Redis server port |
 | NODE_ENV | production | Application environment |

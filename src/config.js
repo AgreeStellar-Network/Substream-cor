@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { Networks } = require('@stellar/stellar-sdk');
 
 const DEFAULT_CONTRACT_ID = 'CAOUX2FZ65IDC4F2X7LJJ2SVF23A35CCTZB7KVVN475JCLKTTU4CEY6L';
+const { getPostgresPoolSizing } = require('./database/poolConfig');
 
 /**
  * Load runtime configuration from environment variables or Vault.
@@ -29,6 +30,7 @@ async function loadConfig(env = process.env, vaultService = null) {
   const getSecret = (key, defaultValue = '') => {
     return vaultSecrets[key] !== undefined ? vaultSecrets[key] : (env[key] || defaultValue);
   };
+  const databasePool = getPostgresPoolSizing(env);
 
   return {
     port: Number(env.PORT || 3000),
@@ -52,7 +54,12 @@ async function loadConfig(env = process.env, vaultService = null) {
       filename: env.DATABASE_FILENAME || path.join(process.cwd(), 'data', 'substream-protocol.sqlite'),
       url: env.DATABASE_URL || '',
       encryptionKey: getSecret('DB_ENCRYPTION_KEY') || '',
-      maxConnections: Number(env.DB_MAX_CONNECTIONS || 20),
+      maxConnections: databasePool.max,
+      minConnections: databasePool.min,
+      idleTimeoutMillis: databasePool.idleTimeoutMillis,
+      connectionTimeoutMillis: databasePool.connectionTimeoutMillis,
+      statementTimeoutMillis: databasePool.statementTimeoutMillis,
+      idleInTransactionSessionTimeoutMillis: databasePool.idleInTransactionSessionTimeoutMillis,
     },
     cdn: {
       baseUrl: env.CDN_BASE_URL || '',
@@ -199,6 +206,51 @@ async function loadConfig(env = process.env, vaultService = null) {
       notificationQueue: env.RABBITMQ_NOTIFICATION_QUEUE || 'substream_notifications_queue',
       emailQueue: env.RABBITMQ_EMAIL_QUEUE || 'substream_emails_queue',
       leaderboardQueue: env.RABBITMQ_LEADERBOARD_QUEUE || 'substream_leaderboard_queue',
+    },
+    // Isolated BullMQ queue configuration for on-chain Soroban subscription events.
+    // Each event type gets its own queue with independently-tunable settings.
+    sorobanQueues: {
+      defaultMaxAttempts: Number(env.SOROBAN_QUEUE_MAX_ATTEMPTS || 5),
+      defaultBackoffDelay: Number(env.SOROBAN_QUEUE_BACKOFF_DELAY_MS || 2000),
+      defaultConcurrency: Number(env.SOROBAN_QUEUE_DEFAULT_CONCURRENCY || 5),
+      defaultRetainCompleted: Number(env.SOROBAN_QUEUE_RETAIN_COMPLETED || 200),
+      defaultRetainFailed: Number(env.SOROBAN_QUEUE_RETAIN_FAILED || 100),
+      SubscriptionBilled: {
+        concurrency: Number(env.SOROBAN_QUEUE_BILLED_CONCURRENCY || 10),
+        maxAttempts: Number(env.SOROBAN_QUEUE_BILLED_MAX_ATTEMPTS || 5),
+        backoffDelay: Number(env.SOROBAN_QUEUE_BILLED_BACKOFF_MS || 2000),
+        rateLimiter: {
+          max: Number(env.SOROBAN_QUEUE_BILLED_RATE_MAX || 100),
+          duration: Number(env.SOROBAN_QUEUE_BILLED_RATE_WINDOW_MS || 10000),
+        },
+      },
+      TrialStarted: {
+        concurrency: Number(env.SOROBAN_QUEUE_TRIAL_CONCURRENCY || 8),
+        maxAttempts: Number(env.SOROBAN_QUEUE_TRIAL_MAX_ATTEMPTS || 5),
+        backoffDelay: Number(env.SOROBAN_QUEUE_TRIAL_BACKOFF_MS || 2000),
+        rateLimiter: {
+          max: Number(env.SOROBAN_QUEUE_TRIAL_RATE_MAX || 50),
+          duration: Number(env.SOROBAN_QUEUE_TRIAL_RATE_WINDOW_MS || 10000),
+        },
+      },
+      PaymentFailed: {
+        concurrency: Number(env.SOROBAN_QUEUE_PAYMENT_FAILED_CONCURRENCY || 4),
+        maxAttempts: Number(env.SOROBAN_QUEUE_PAYMENT_FAILED_MAX_ATTEMPTS || 7),
+        backoffDelay: Number(env.SOROBAN_QUEUE_PAYMENT_FAILED_BACKOFF_MS || 5000),
+        rateLimiter: {
+          max: Number(env.SOROBAN_QUEUE_PAYMENT_FAILED_RATE_MAX || 30),
+          duration: Number(env.SOROBAN_QUEUE_PAYMENT_FAILED_RATE_WINDOW_MS || 10000),
+        },
+      },
+      PaymentFailedGracePeriodStarted: {
+        concurrency: Number(env.SOROBAN_QUEUE_GRACE_PERIOD_CONCURRENCY || 4),
+        maxAttempts: Number(env.SOROBAN_QUEUE_GRACE_PERIOD_MAX_ATTEMPTS || 7),
+        backoffDelay: Number(env.SOROBAN_QUEUE_GRACE_PERIOD_BACKOFF_MS || 5000),
+        rateLimiter: {
+          max: Number(env.SOROBAN_QUEUE_GRACE_PERIOD_RATE_MAX || 30),
+          duration: Number(env.SOROBAN_QUEUE_GRACE_PERIOD_RATE_WINDOW_MS || 10000),
+        },
+      },
     },
     substream: {
       baseDomain: env.SUBSTREAM_BASE_DOMAIN || 'substream.app',

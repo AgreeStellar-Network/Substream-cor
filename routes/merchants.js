@@ -5,6 +5,7 @@ const fs = require('fs');
 const { authenticateToken, getUserId } = require('../middleware/unifiedAuth');
 const StripeMigrationService = require('../services/stripeMigrationService');
 const treasuryService = require('../services/treasuryService');
+const { EnhancedChurnRiskService } = require('../services/enhancedChurnRiskService');
 
 const router = express.Router();
 
@@ -457,5 +458,180 @@ router.get('/:id/treasury/history', authenticateToken, async (req, res) => {
     });
   }
 });
+
+/**
+ * GET /api/v1/merchants/:id/risk-analysis
+ * Get churn risk analysis for a merchant's subscribers
+ */
+router.get('/:id/risk-analysis', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      riskLevel = null, 
+      limit = 100, 
+      offset = 0, 
+      includeFactors = 'true',
+      triggerAnalysis = 'false'
+    } = req.query;
+    
+    // Initialize the enhanced churn risk service
+    const churnRiskService = new EnhancedChurnRiskService();
+    
+    // Trigger real-time analysis if requested
+    if (triggerAnalysis === 'true') {
+      console.log(`Triggering real-time churn risk analysis for merchant ${id}`);
+      await churnRiskService.analyzeMerchantChurnRisk(id);
+    }
+    
+    // Get risk analysis data
+    const options = {
+      riskLevel,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      includeFactors: includeFactors === 'true'
+    };
+    
+    const riskAnalysis = await churnRiskService.getMerchantRiskAnalysis(id, options);
+    
+    // Return actionable insights for merchants
+    const actionableInsights = generateActionableInsights(riskAnalysis);
+    
+    res.json({
+      success: true,
+      data: {
+        ...riskAnalysis,
+        actionableInsights,
+        webhookConfig: {
+          highRiskWebhook: `/api/v1/webhooks/merchants/${id}/high-risk-churn`,
+          retentionSuggestions: generateRetentionSuggestions(riskAnalysis.summary)
+        }
+      },
+      timestamp: new Date().toISOString(),
+      message: 'Risk analysis retrieved successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error in risk analysis endpoint', { merchantId: req.params.id, error });
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: 'Failed to retrieve risk analysis data',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Generate actionable insights for merchants
+ */
+function generateActionableInsights(riskAnalysis) {
+  const { summary, subscribers } = riskAnalysis;
+  const insights = [];
+  
+  // High-risk insights
+  if (summary.highRiskCount > 0) {
+    insights.push({
+      type: 'high_risk_alert',
+      priority: 'critical',
+      title: `${summary.highRiskCount} subscribers at high risk of churn`,
+      description: 'Immediate action recommended to prevent revenue loss',
+      suggestedActions: [
+        'Send targeted retention emails with loyalty discounts',
+        'Offer temporary payment grace periods',
+        'Enable automatic payment retry with higher limits'
+      ]
+    });
+  }
+  
+  // Just-in-time topup pattern detection
+  const justInTimeUsers = subscribers.filter(s => 
+    s.justInTimeTopupsCount && s.justInTimeTopupsCount >= 3
+  );
+  
+  if (justInTimeUsers.length > 0) {
+    insights.push({
+      type: 'just_in_time_pattern',
+      priority: 'high',
+      title: `${justInTimeUsers.length} subscribers show just-in-time topup patterns`,
+      description: 'These users consistently top up right before payment failures',
+      suggestedActions: [
+        'Proactively offer subscription plan upgrades',
+        'Implement automatic balance alerts',
+        'Provide flexible payment scheduling options'
+      ]
+    });
+  }
+  
+  // Balance exhaustion warnings
+  const criticalBalanceUsers = subscribers.filter(s => 
+    s.daysUntilBalanceExhausted !== null && s.daysUntilBalanceExhausted <= 7
+  );
+  
+  if (criticalBalanceUsers.length > 0) {
+    insights.push({
+      type: 'balance_exhaustion',
+      priority: 'medium',
+      title: `${criticalBalanceUsers.length} subscribers may run out of balance within 7 days`,
+      description: 'Early intervention can prevent payment failures',
+      suggestedActions: [
+        'Send low balance notifications',
+        'Offer automatic top-up options',
+        'Provide temporary credit extensions'
+      ]
+    });
+  }
+  
+  // Overall risk assessment
+  const riskPercentage = (summary.highRiskCount / summary.totalSubscribers) * 100;
+  if (riskPercentage > 20) {
+    insights.push({
+      type: 'overall_risk',
+      priority: 'high',
+      title: `High overall churn risk: ${riskPercentage.toFixed(1)}% of subscribers`,
+      description: 'Consider reviewing your pricing and payment strategies',
+      suggestedActions: [
+        'Review subscription pricing tiers',
+        'Implement proactive retention campaigns',
+        'Consider offering annual billing discounts'
+      ]
+    });
+  }
+  
+  return insights;
+}
+
+/**
+ * Generate retention suggestions based on risk analysis
+ */
+function generateRetentionSuggestions(summary) {
+  const suggestions = [];
+  
+  if (summary.highRiskCount > 0) {
+    suggestions.push({
+      strategy: 'loyalty_discounts',
+      description: 'Offer 10-20% discounts for high-risk subscribers',
+      expectedImpact: 'Reduce churn by 15-25%',
+      implementation: 'Automated email campaigns with discount codes'
+    });
+  }
+  
+  if (summary.averageRiskScore > 50) {
+    suggestions.push({
+      strategy: 'payment_reminders',
+      description: 'Send payment reminders 3-5 days before billing',
+      expectedImpact: 'Reduce failed payments by 30%',
+      implementation: 'Automated SMS and email notifications'
+    });
+  }
+  
+  suggestions.push({
+    strategy: 'flexible_billing',
+    description: 'Offer multiple payment dates and methods',
+    expectedImpact: 'Improve payment success by 20%',
+    implementation: 'User preference management in account settings'
+  });
+  
+  return suggestions;
+}
 
 module.exports = router;

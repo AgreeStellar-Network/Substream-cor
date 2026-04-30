@@ -4,8 +4,8 @@
  */
 exports.up = function(knex) {
   return knex.schema.createTable('merchant_balances', (table) => {
-    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
-    table.uuid('merchant_id').notNullable().references('id').inTable('merchants').onDelete('CASCADE');
+    table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
+    table.string('merchant_id').notNullable().references('id').inTable('merchants').onDelete('CASCADE');
     table.string('asset_code').notNullable(); // e.g., 'XLM', 'USDC', 'EURC'
     table.string('asset_issuer').nullable(); // Stellar asset issuer
     table.decimal('balance', 20, 8).notNullable().defaultTo(0);

@@ -3,6 +3,63 @@ const Redis = require("ioredis");
 let redisClient = null;
 
 /**
+ * Circuit breaker state for Redis.
+ * Tracks consecutive failures and opens the circuit to avoid hammering
+ * an unavailable Redis instance. Automatically half-opens after a cooldown
+ * period so the next request can probe whether Redis has recovered.
+ *
+ * States:
+ *   CLOSED  – Redis is healthy; all operations proceed normally.
+ *   OPEN    – Redis is unhealthy; operations fail fast without attempting.
+ *   HALF_OPEN – Cooldown elapsed; one probe request is allowed through.
+ */
+const circuitBreaker = {
+  state: "CLOSED",          // "CLOSED" | "OPEN" | "HALF_OPEN"
+  failures: 0,
+  threshold: Number(process.env.REDIS_CB_THRESHOLD || 5),   // failures before opening
+  cooldownMs: Number(process.env.REDIS_CB_COOLDOWN_MS || 30000), // 30 s
+  openedAt: null,
+
+  /** Record a successful Redis operation. */
+  recordSuccess() {
+    this.failures = 0;
+    if (this.state !== "CLOSED") {
+      console.log("[Redis] Circuit breaker CLOSED – Redis recovered");
+    }
+    this.state = "CLOSED";
+    this.openedAt = null;
+  },
+
+  /** Record a failed Redis operation. */
+  recordFailure() {
+    this.failures += 1;
+    if (this.state === "CLOSED" && this.failures >= this.threshold) {
+      this.state = "OPEN";
+      this.openedAt = Date.now();
+      console.warn(
+        `[Redis] Circuit breaker OPEN after ${this.failures} consecutive failures`
+      );
+    }
+  },
+
+  /**
+   * Returns true when a Redis call should be attempted.
+   * Transitions OPEN → HALF_OPEN once the cooldown has elapsed.
+   */
+  isHealthy() {
+    if (this.state === "CLOSED") return true;
+    if (this.state === "HALF_OPEN") return true; // allow the probe
+    // OPEN – check cooldown
+    if (Date.now() - this.openedAt >= this.cooldownMs) {
+      this.state = "HALF_OPEN";
+      console.log("[Redis] Circuit breaker HALF_OPEN – probing Redis");
+      return true;
+    }
+    return false;
+  },
+};
+
+/**
  * Create or return the singleton Redis client.
  *
  * Supports configuration via environment variables:
@@ -40,6 +97,11 @@ function getRedisClient(opts = {}) {
 
   redisClient.on("error", (err) => {
     console.error("[Redis] connection error:", err.message);
+    circuitBreaker.recordFailure();
+  });
+
+  redisClient.on("ready", () => {
+    circuitBreaker.recordSuccess();
   });
 
   return redisClient;
@@ -62,4 +124,4 @@ function setRedisClient(client) {
   redisClient = client;
 }
 
-module.exports = { getRedisClient, closeRedisClient, setRedisClient };
+module.exports = { getRedisClient, closeRedisClient, setRedisClient, circuitBreaker };

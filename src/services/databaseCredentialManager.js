@@ -8,6 +8,7 @@
 
 const { Pool } = require('pg');
 const { getVaultService } = require('./vaultService');
+const { getPgPoolConfig } = require('../database/poolConfig');
 
 class DatabaseCredentialManager {
   constructor(options = {}) {
@@ -98,9 +99,11 @@ class DatabaseCredentialManager {
         host: process.env.DB_HOST || 'localhost',
         port: Number(process.env.DB_PORT || 5432),
         database: process.env.DB_NAME || 'substream',
-        max: Number(process.env.DB_MAX_CONNECTIONS || 20),
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
+        ...getPgPoolConfig(),
+      });
+
+      this.currentPool.on('error', (error) => {
+        console.error('[DatabaseCredentialManager] Unexpected PostgreSQL pool error:', error.message);
       });
 
       // Test the new connection

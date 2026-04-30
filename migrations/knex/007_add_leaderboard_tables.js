@@ -2,7 +2,7 @@ exports.up = function(knex) {
   return knex.schema
     // Streaming payments table for tracking fan payments
     .createTable('streaming_payments', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('creator_address').notNullable().index();
       table.string('fan_address').notNullable().index();
       table.decimal('amount', 20, 8).notNullable();
@@ -19,7 +19,7 @@ exports.up = function(knex) {
     
     // Content likes table for engagement tracking
     .createTable('content_likes', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('content_id').notNullable().index();
       table.string('creator_address').notNullable().index();
       table.string('fan_address').notNullable().index();
@@ -36,7 +36,7 @@ exports.up = function(knex) {
     
     // Leaderboard snapshots for historical data
     .createTable('leaderboard_snapshots', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('creator_address').notNullable().index();
       table.string('fan_address').notNullable().index();
       table.string('season').notNullable().index();
@@ -54,7 +54,7 @@ exports.up = function(knex) {
     
     // Fan engagement summary for quick lookups
     .createTable('fan_engagement_summary', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('creator_address').notNullable().index();
       table.string('fan_address').notNullable().index();
       table.string('season').notNullable().index();

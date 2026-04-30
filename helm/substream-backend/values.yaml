@@ -99,7 +99,7 @@ redis:
 
 database:
   filename: "/app/data/substream.db"
-  maxConnections: 20
+  maxConnections: 10
 
 # Migration configuration
 migration:

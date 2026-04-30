@@ -73,12 +73,40 @@ router.post('/verify', async (req, res) => {
 
     // Verify the challenge
     const verification = await stellarService.verifyChallenge(challengeXDR, publicKey);
-    
+
     if (!verification.success) {
       return res.status(400).json({
         success: false,
         error: verification.error
       });
+    }
+
+    // OFAC / global-sanctions screening — must complete BEFORE we issue a
+    // JWT, otherwise a flagged wallet would have a valid token in the wild.
+    const sanctionsService = req.app.get('sanctionsScreeningService');
+    if (sanctionsService) {
+      try {
+        const screen = await sanctionsService.screenAddress(publicKey, {
+          triggeringAction: 'sep10_verify',
+          ipAddress: req.ip,
+        });
+        if (!screen.allowed) {
+          return res.status(403).json({
+            success: false,
+            error: 'ACCOUNT_BLOCKED',
+            message:
+              'This wallet is blocked by sanctions screening. Contact compliance for review.',
+            auditId: screen.auditId,
+          });
+        }
+      } catch (screenError) {
+        console.error('Sanctions screening error during SEP-10 verify:', screenError);
+        // Treat unexpected service errors as fail-closed at the gate.
+        return res.status(503).json({
+          success: false,
+          error: 'Sanctions screening unavailable; please retry shortly.',
+        });
+      }
     }
 
     // Determine user tier (in production, fetch from database)

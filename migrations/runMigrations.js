@@ -9,8 +9,8 @@
  */
 
 const knex = require('knex');
-const knexConfig = require('./knexfile');
-const { AppDatabase } = require('./src/db/appDatabase');
+const knexConfig = require('../knexfile');
+const { AppDatabase } = require('../src/db/appDatabase');
 
 class MigrationRunner {
   constructor() {

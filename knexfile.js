@@ -34,8 +34,8 @@ module.exports = {
     createRetryIntervalMillis: 200,
     afterCreate: (conn, done) => {
       // Enable WAL mode for better concurrent read performance
-      conn.run('PRAGMA journal_mode = WAL;');
-      conn.run('PRAGMA busy_timeout = 5000;');
+      conn.exec('PRAGMA journal_mode = WAL;');
+      conn.exec('PRAGMA busy_timeout = 5000;');
       done(null, conn);
     },
   },

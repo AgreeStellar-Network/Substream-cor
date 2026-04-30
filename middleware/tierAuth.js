@@ -56,12 +56,17 @@ function attachTier(req, res, next) {
   try {
     const secret = process.env.JWT_SECRET || 'dev-secret';
     const decoded = jwt.verify(token, secret);
+    const tenantId = decoded.tenant_id || decoded.tenantId || decoded.organizationId || null;
 
     req.user = {
       // routes/auth.js stores the wallet address as `address`
-      address: decoded.address || decoded.sub || null,
+      address: decoded.address || decoded.publicKey || decoded.sub || null,
       // routes/auth.js sets tier at login time; default to 'bronze' if missing
       tier: (decoded.tier || 'bronze').toLowerCase(),
+      tenant_id: tenantId,
+      email: decoded.email || null,
+      role: decoded.role || null,
+      permissions: Array.isArray(decoded.permissions) ? decoded.permissions : [],
     };
   } catch {
     // Expired or tampered token — treat as unauthenticated guest

@@ -1,0 +1,896 @@
+diff --git a/index.js b/index.js
+index ef8a12c..c59f632 100644
+--- a/index.js
++++ b/index.js
+@@ -151,6 +151,8 @@ async function createApp(dependencies = {}) {
+   const app = express();
+   const config = dependencies.config || await loadConfig(process.env, vaultService);
+   const database = dependencies.database || new AppDatabase(config.database.filename);
++  const cronService = require('./services/cronService');
++  cronService.setDatabase(database);
+   const auditLogService =
+     dependencies.auditLogService || new CreatorAuditLogService(database);
+   const creatorActionService =
+diff --git a/services/cronService.js b/services/cronService.js
+index 5a0311c..e88cc6c 100644
+--- a/services/cronService.js
++++ b/services/cronService.js
+@@ -1,13 +1,23 @@
+ const cron = require('node-cron');
+ const badgeService = require('./badgeService');
+ const gdprService = require('./gdprService');
++const { SorobanEventArchiveService } = require('./sorobanEventArchiveService');
+ 
+ class CronService {
+   constructor() {
+     this.jobs = new Map();
++    this.archiveService = new SorobanEventArchiveService();
+     this.setupDefaultJobs();
+   }
+ 
++  /**
++   * Set the database instance for services that require it
++   * @param {AppDatabase} database 
++   */
++  setDatabase(database) {
++    this.archiveService.setDatabase(database);
++  }
++
+   setupDefaultJobs() {
+     // Run badge milestone check daily at 2 AM UTC
+     this.scheduleJob('daily-badge-check', '0 2 * * *', async () => {
+@@ -42,6 +52,31 @@ class CronService {
+         console.error('Error in feed credential rotation:', error);
+       }
+     });
++
++    // Archive historical Soroban subscription events daily at 4 AM UTC
++    this.scheduleJob('archive-soroban-events', '0 4 * * *', async () => {
++      console.log('Running Soroban event archival...');
++      try {
++        const result = await this.archiveService.runArchival();
++        console.log(`Archived ${result.archived} historical subscription events`);
++        if (result.errors.length > 0) {
++          console.warn(`Archival completed with ${result.errors.length} errors`);
++        }
++      } catch (error) {
++        console.error('Error in Soroban event archival:', error);
++      }
++    });
++
++    // Clean up old archived events monthly (1st of month at 5 AM UTC)
++    this.scheduleJob('cleanup-old-archives', '0 5 1 * *', async () => {
++      console.log('Running old archive cleanup...');
++      try {
++        const result = await this.archiveService.cleanupOldArchives();
++        console.log(`Permanently deleted ${result.deleted} old archived events`);
++      } catch (error) {
++        console.error('Error in old archive cleanup:', error);
++      }
++    });
+   }
+ 
+   scheduleJob(name, schedule, task) {
+@@ -103,6 +138,12 @@ class CronService {
+         const feedService = require('./feedService');
+         feedService.cleanupExpiredTokens();
+         break;
++      case 'archive-soroban-events':
++        await this.archiveService.runArchival();
++        break;
++      case 'cleanup-old-archives':
++        await this.archiveService.cleanupOldArchives();
++        break;
+       default:
+         throw new Error(`Unknown job: ${name}`);
+     }
+diff --git a/src/db/appDatabase.js b/src/db/appDatabase.js
+index f8c9aa4..ebb2921 100644
+--- a/src/db/appDatabase.js
++++ b/src/db/appDatabase.js
+@@ -27,38 +27,33 @@ class AppDatabase {
+       timestamp
+     );
+     return this.db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
+-    constructor(filename) {
+-      this.filename = filename;
+-      this.ensureDirectory();
+-      this.db = new DatabaseSync(filename);
+-      this.initializeSchema();
+-      this.ensureSubscriberCountColumn();
+-      this.ensureSubscriptionRiskColumns();
+-    }
++  }
+ 
+-    /**
+-     * List notifications for a creator (most recent first).
+-     * @param {string} creatorId
+-     * @returns {object[]}
+-     */
+-    listNotificationsByCreatorId(creatorId) {
+-      return this.db.prepare(
+-        'SELECT * FROM notifications WHERE creator_id = ? ORDER BY timestamp DESC, id DESC'
+-      ).all(creatorId);
+-    }
+ 
+-    /**
+-     * Mark a notification as read.
+-     * @param {string} notificationId
+-     * @returns {object}
+-     */
+-    markNotificationAsRead(notificationId) {
+-      this.db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(notificationId);
+-      return this.db.prepare('SELECT * FROM notifications WHERE id = ?').get(notificationId);
+-    }
+-    /**
+-     * @param {string} filename SQLite filename or `:memory:`.
+-     */
++  /**
++   * List notifications for a creator (most recent first).
++   * @param {string} creatorId
++   * @returns {object[]}
++   */
++  listNotificationsByCreatorId(creatorId) {
++    return this.db.prepare(
++      'SELECT * FROM notifications WHERE creator_id = ? ORDER BY timestamp DESC, id DESC'
++    ).all(creatorId);
++  }
++
++  /**
++   * Mark a notification as read.
++   * @param {string} notificationId
++   * @returns {object}
++   */
++  markNotificationAsRead(notificationId) {
++    this.db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(notificationId);
++    return this.db.prepare('SELECT * FROM notifications WHERE id = ?').get(notificationId);
++  }
++
++  /**
++   * @param {string} filename SQLite filename or `:memory:`.
++   */
+   constructor(filename) {
+     this.filename = filename;
+     this.ensureDirectory();
+@@ -73,6 +68,7 @@ class AppDatabase {
+    * Initialize the database schema
+    */
+   initializeSchema() {
++    this.db.exec(`
+       PRAGMA foreign_keys = ON;
+ 
+       CREATE TABLE IF NOT EXISTS creators (
+@@ -136,6 +132,16 @@ class AppDatabase {
+         active INTEGER NOT NULL DEFAULT 1,
+         subscribed_at TEXT NOT NULL,
+         unsubscribed_at TEXT,
++        balance REAL,
++        daily_spend REAL,
++        user_email TEXT,
++        risk_status TEXT,
++        estimated_run_out_at TEXT,
++        migrated_from_stripe INTEGER DEFAULT 0,
++        stripe_plan_id TEXT,
++        PRIMARY KEY (creator_id, wallet_address)
++      );
++
+       CREATE TABLE IF NOT EXISTS notifications (
+         id TEXT PRIMARY KEY,
+         creator_id TEXT NOT NULL REFERENCES creators(id),
+@@ -155,12 +161,9 @@ class AppDatabase {
+         sent INTEGER NOT NULL DEFAULT 0,
+         timestamp TEXT NOT NULL
+       );
+-        PRIMARY KEY (creator_id, wallet_address)
+-      );
+ 
+       CREATE INDEX IF NOT EXISTS idx_creator_audit_logs_creator_timestamp
+         ON creator_audit_logs (creator_id, timestamp DESC);
+-      ON creator_audit_logs (creator_id, timestamp DESC);
+ 
+       CREATE TABLE IF NOT EXISTS comments (
+         id TEXT PRIMARY KEY,
+@@ -187,10 +190,70 @@ class AppDatabase {
+ 
+       CREATE INDEX IF NOT EXISTS idx_creator_subdomains_subdomain ON creator_subdomains (subdomain);
+       CREATE INDEX IF NOT EXISTS idx_creator_subdomains_creator_id ON creator_subdomains (creator_id);
++
++      CREATE TABLE IF NOT EXISTS soroban_ingestion_state (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        contract_id TEXT NOT NULL UNIQUE,
++        last_ingested_ledger INTEGER NOT NULL DEFAULT 0,
++        last_ingested_timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
++        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
++        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
++      );
++
++      CREATE INDEX IF NOT EXISTS idx_soroban_ingestion_state_contract_id ON soroban_ingestion_state (contract_id);
++
++      CREATE TABLE IF NOT EXISTS soroban_events (
++        id TEXT PRIMARY KEY,
++        contract_id TEXT NOT NULL,
++        transaction_hash TEXT NOT NULL,
++        event_index INTEGER NOT NULL,
++        ledger_sequence INTEGER NOT NULL,
++        event_type TEXT NOT NULL,
++        event_data TEXT NOT NULL,
++        raw_xdr TEXT,
++        ledger_timestamp TEXT NOT NULL,
++        ingested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
++        processed_at TEXT,
++        status TEXT NOT NULL DEFAULT 'pending',
++        error_message TEXT,
++        retry_count INTEGER NOT NULL DEFAULT 0,
++        UNIQUE (transaction_hash, event_index)
++      );
++
++      CREATE INDEX IF NOT EXISTS idx_soroban_events_contract_id ON soroban_events (contract_id);
++      CREATE INDEX IF NOT EXISTS idx_soroban_events_ledger_sequence ON soroban_events (ledger_sequence);
++      CREATE INDEX IF NOT EXISTS idx_soroban_events_event_type ON soroban_events (event_type);
++      CREATE INDEX IF NOT EXISTS idx_soroban_events_status ON soroban_events (status);
++      CREATE INDEX IF NOT EXISTS idx_soroban_events_ingested_at ON soroban_events (ingested_at);
++      CREATE INDEX IF NOT EXISTS idx_soroban_events_contract_type ON soroban_events (contract_id, event_type, ledger_sequence DESC);
++
++      CREATE TABLE IF NOT EXISTS soroban_events_archive (
++        id TEXT PRIMARY KEY,
++        contract_id TEXT NOT NULL,
++        transaction_hash TEXT NOT NULL,
++        event_index INTEGER NOT NULL,
++        ledger_sequence INTEGER NOT NULL,
++        event_type TEXT NOT NULL,
++        event_data TEXT NOT NULL,
++        raw_xdr TEXT,
++        ledger_timestamp TEXT NOT NULL,
++        ingested_at TEXT NOT NULL,
++        processed_at TEXT,
++        status TEXT NOT NULL,
++        error_message TEXT,
++        retry_count INTEGER NOT NULL DEFAULT 0,
++        archived_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
++      );
++
++      CREATE INDEX IF NOT EXISTS idx_soroban_archive_contract_id ON soroban_events_archive (contract_id);
++      CREATE INDEX IF NOT EXISTS idx_soroban_archive_ledger_timestamp ON soroban_events_archive (ledger_timestamp);
++      CREATE INDEX IF NOT EXISTS idx_soroban_archive_event_type ON soroban_events_archive (event_type);
++      CREATE INDEX IF NOT EXISTS idx_soroban_archive_archived_at ON soroban_events_archive (archived_at);
+     `);
+ 
+-      this.ensureSubscriberCountColumn();
+-    }
++    this.ensureSubscriberCountColumn();
++  }
++
+ 
+     /**
+      * Ensure the parent directory for the database file exists.
+@@ -542,10 +605,6 @@ class AppDatabase {
+       this.ensureCreator(creatorId);
+       const row = this.db
+         .prepare('SELECT subscriber_count AS subscriberCount FROM creators WHERE id = ?')
+-        .get(creatorId);
+-      .prepare(`SELECT subscriber_count AS subscriberCount FROM creators WHERE id = ?`)
+-        .get(creatorId);
+-
+       return (row && Number(row.subscriberCount)) || 0;
+     }
+ 
+@@ -563,10 +622,6 @@ class AppDatabase {
+           .prepare(
+             'UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?',
+           )
+-          .run(creatorId);
+-        .prepare(`UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?`)
+-          .run(creatorId);
+-
+         return this.getCreatorSubscriberCount(creatorId);
+       });
+     }
+@@ -586,10 +641,6 @@ class AppDatabase {
+             'UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?',
+           )
+           .run(creatorId);
+-        `UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?`,
+-        )
+-        .run(creatorId);
+-
+       return this.getCreatorSubscriberCount(creatorId);
+     });
+   }
+@@ -608,9 +659,6 @@ class AppDatabase {
+       this.db
+         .prepare('UPDATE creators SET subscriber_count = ? WHERE id = ?')
+         .run(safe, creatorId);
+-        .prepare(`UPDATE creators SET subscriber_count = ? WHERE id = ?`)
+-        .run(safe, creatorId);
+-
+       return this.getCreatorSubscriberCount(creatorId);
+     });
+   }
+@@ -631,18 +679,13 @@ class AppDatabase {
+     return row || null;
+   }
+ 
+-        `SELECT creator_id AS creatorId, wallet_address AS walletAddress, active, subscribed_at AS subscribedAt, unsubscribed_at AS unsubscribedAt FROM subscriptions WHERE creator_id = ? AND wallet_address = ?`,
+-      )
+-      .get(creatorId, walletAddress);
+-return row || null;
+-  }
+ 
+ /**
+  * List active subscriptions that can be assessed for low-balance risk.
+  *
+  * @returns {Array<{creatorId: string, walletAddress: string, balance: number|null, dailySpend: number|null, userEmail: string|null}>}
+  */
+-listSubscriptionsForRiskCheck() {
++  listSubscriptionsForRiskCheck() {
+   return this.db
+     .prepare(
+       `
+@@ -657,7 +700,7 @@ listSubscriptionsForRiskCheck() {
+       `,
+     )
+     .all();
+-}
++  }
+ 
+ /**
+  * Persist estimated run-out date and optionally update risk status.
+@@ -665,7 +708,7 @@ listSubscriptionsForRiskCheck() {
+  * @param {{creatorId: string, walletAddress: string, estimatedRunOutAt: string|null, riskStatus?: string|null}} input
+  * @returns {void}
+  */
+-updateSubscriptionRiskAssessment(input) {
++  updateSubscriptionRiskAssessment(input) {
+   if (input.riskStatus === undefined) {
+     this.db
+       .prepare(
+@@ -688,7 +731,7 @@ updateSubscriptionRiskAssessment(input) {
+       `,
+     )
+     .run(input.estimatedRunOutAt, input.riskStatus, input.creatorId, input.walletAddress);
+-}
++  }
+ 
+ /**
+  * Create a new comment.
+@@ -696,7 +739,7 @@ updateSubscriptionRiskAssessment(input) {
+  * @param {{postId: string, userAddress: string, creatorId: string, content: string}} comment Comment data.
+  * @returns {object}
+  */
+-createComment(comment) {
++  createComment(comment) {
+   const id = crypto.randomUUID();
+   const now = new Date().toISOString();
+   this.db
+@@ -709,7 +752,7 @@ createComment(comment) {
+     .run(id, comment.postId, comment.userAddress, comment.creatorId, comment.content, now, now);
+ 
+   return this.getCommentById(id);
+-}
++  }
+ 
+ /**
+  * Get a comment by ID.
+@@ -717,7 +760,7 @@ createComment(comment) {
+  * @param {string} commentId Comment identifier.
+  * @returns {object|null}
+  */
+-getCommentById(commentId) {
++  getCommentById(commentId) {
+   const row = this.db
+     .prepare(
+       `
+@@ -729,7 +772,7 @@ getCommentById(commentId) {
+     .get(commentId);
+ 
+   return row || null;
+-}
++  }
+ 
+ /**
+  * Create or activate a subscription for a wallet.
+@@ -739,7 +782,7 @@ getCommentById(commentId) {
+  * @param {string} creatorId
+  * @param {string} walletAddress
+  */
+-createOrActivateSubscription(creatorId, walletAddress) {
++  createOrActivateSubscription(creatorId, walletAddress) {
+   return this.transaction(() => {
+     this.ensureCreator(creatorId);
+     const existing = this.getSubscription(creatorId, walletAddress);
+@@ -771,23 +814,6 @@ createOrActivateSubscription(creatorId, walletAddress) {
+       .run(creatorId);
+ 
+     return { changed: true, count: this.getCreatorSubscriberCount(creatorId) };
+-    // reactivate
+-    this.db
+-      .prepare(`UPDATE subscriptions SET active = 1, subscribed_at = ?, unsubscribed_at = NULL WHERE creator_id = ? AND wallet_address = ?`)
+-      .run(now, creatorId, walletAddress);
+-  } else {
+-    this.db
+-      .prepare(`INSERT INTO subscriptions (creator_id, wallet_address, active, subscribed_at) VALUES (?, ?, 1, ?)`)
+-      .run(creatorId, walletAddress, now);
+-  }
+-
+-      // Increment cached count
+-      this.db
+-      .prepare(`UPDATE creators SET subscriber_count = COALESCE(subscriber_count, 0) + 1 WHERE id = ?`)
+-      .run(creatorId);
+-
+-  const newCount = this.getCreatorSubscriberCount(creatorId);
+-  return { changed: true, count: newCount };
+ });
+   }
+ 
+@@ -799,7 +825,7 @@ createOrActivateSubscription(creatorId, walletAddress) {
+  * @param {string} creatorId
+  * @param {string} walletAddress
+  */
+-deactivateSubscription(creatorId, walletAddress) {
++  deactivateSubscription(creatorId, walletAddress) {
+   return this.transaction(() => {
+     this.ensureCreator(creatorId);
+     const existing = this.getSubscription(creatorId, walletAddress);
+@@ -822,18 +848,8 @@ deactivateSubscription(creatorId, walletAddress) {
+       .run(creatorId);
+ 
+     return { changed: true, count: this.getCreatorSubscriberCount(creatorId) };
+-        .prepare(`UPDATE subscriptions SET active = 0, unsubscribed_at = ? WHERE creator_id = ? AND wallet_address = ?`)
+-      .run(now, creatorId, walletAddress);
+-
+-    // Decrement cached count, clamp at 0
+-    this.db
+-      .prepare(`UPDATE creators SET subscriber_count = MAX(COALESCE(subscriber_count, 0) - 1, 0) WHERE id = ?`)
+-      .run(creatorId);
+-
+-    const newCount = this.getCreatorSubscriberCount(creatorId);
+-    return { changed: true, count: newCount };
+   });
+-}
++  }
+ 
+ /**
+  * Count active subscriptions for a creator (derived from subscriptions table).
+@@ -841,26 +857,21 @@ deactivateSubscription(creatorId, walletAddress) {
+  * @param {string} creatorId
+  * @returns {number}
+  */
+-countActiveSubscriptions(creatorId) {
++  countActiveSubscriptions(creatorId) {
+   const row = this.db
+     .prepare('SELECT COUNT(1) AS ct FROM subscriptions WHERE creator_id = ? AND active = 1')
+     .get(creatorId);
+   return (row && Number(row.ct)) || 0;
+-}
+-
+-      .prepare(`SELECT COUNT(1) AS ct FROM subscriptions WHERE creator_id = ? AND active = 1`)
+-  .get(creatorId);
+-
+-return (row && Number(row.ct)) || 0;
+   }
+ 
++
+ /**
+  * Get comments by post ID.
+  *
+  * @param {string} postId Post identifier.
+  * @returns {object[]}
+  */
+-getCommentsByPostId(postId) {
++  getCommentsByPostId(postId) {
+   return this.db
+     .prepare(
+       `
+@@ -871,7 +882,7 @@ getCommentsByPostId(postId) {
+       `,
+     )
+     .all(postId);
+-}
++  }
+ 
+ /**
+  * Update a comment.
+@@ -879,7 +890,7 @@ getCommentsByPostId(postId) {
+  * @param {{commentId: string, content: string}} input Update payload.
+  * @returns {object}
+  */
+-updateComment(input) {
++  updateComment(input) {
+   const now = new Date().toISOString();
+   this.db
+     .prepare(
+@@ -892,7 +903,7 @@ updateComment(input) {
+     .run(input.content, now, input.commentId);
+ 
+   return this.getCommentById(input.commentId);
+-}
++  }
+ 
+ /**
+  * Delete a comment.
+@@ -900,7 +911,7 @@ updateComment(input) {
+  * @param {string} commentId Comment identifier.
+  * @returns {boolean}
+  */
+-deleteComment(commentId) {
++  deleteComment(commentId) {
+   const result = this.db
+     .prepare(
+       `
+@@ -910,7 +921,7 @@ deleteComment(commentId) {
+     .run(commentId);
+ 
+   return result.changes > 0;
+-}
++  }
+ 
+ /**
+  * Create a subdomain for a creator.
+@@ -918,7 +929,7 @@ deleteComment(commentId) {
+  * @param {{creatorId: string, subdomain: string}} subdomainData Subdomain data.
+  * @returns {object}
+  */
+-createCreatorSubdomain(subdomainData) {
++  createCreatorSubdomain(subdomainData) {
+   const id = crypto.randomUUID();
+   const now = new Date().toISOString();
+   this.ensureCreator(subdomainData.creatorId);
+@@ -933,7 +944,7 @@ createCreatorSubdomain(subdomainData) {
+     .run(id, subdomainData.creatorId, subdomainData.subdomain, now, now);
+ 
+   return this.getCreatorSubdomain(id);
+-}
++  }
+ 
+ /**
+  * Get a creator subdomain by ID.
+@@ -941,7 +952,7 @@ createCreatorSubdomain(subdomainData) {
+  * @param {string} subdomainId Subdomain identifier.
+  * @returns {object|null}
+  */
+-getCreatorSubdomain(subdomainId) {
++  getCreatorSubdomain(subdomainId) {
+   const row = this.db
+     .prepare(
+       `
+@@ -953,7 +964,7 @@ getCreatorSubdomain(subdomainId) {
+     .get(subdomainId);
+ 
+   return row || null;
+-}
++  }
+ 
+ /**
+  * Get a creator subdomain by subdomain name.
+@@ -961,7 +972,7 @@ getCreatorSubdomain(subdomainId) {
+  * @param {string} subdomain Subdomain name.
+  * @returns {object|null}
+  */
+-getCreatorSubdomainByName(subdomain) {
++  getCreatorSubdomainByName(subdomain) {
+   const row = this.db
+     .prepare(
+       `
+@@ -973,7 +984,7 @@ getCreatorSubdomainByName(subdomain) {
+     .get(subdomain);
+ 
+   return row || null;
+-}
++  }
+ 
+ /**
+  * Get all subdomains for a creator.
+@@ -981,7 +992,7 @@ getCreatorSubdomainByName(subdomain) {
+  * @param {string} creatorId Creator identifier.
+  * @returns {object[]}
+  */
+-getCreatorSubdomains(creatorId) {
++  getCreatorSubdomains(creatorId) {
+   return this.db
+     .prepare(
+       `
+@@ -992,7 +1003,7 @@ getCreatorSubdomains(creatorId) {
+       `,
+     )
+     .all(creatorId);
+-}
++  }
+ 
+ /**
+  * Update a subdomain's status.
+@@ -1000,7 +1011,7 @@ getCreatorSubdomains(creatorId) {
+  * @param {{subdomainId: string, status: string}} updateData Update data.
+  * @returns {object}
+  */
+-updateSubdomainStatus(updateData) {
++  updateSubdomainStatus(updateData) {
+   const now = new Date().toISOString();
+   this.db
+     .prepare(
+@@ -1013,7 +1024,7 @@ updateSubdomainStatus(updateData) {
+     .run(updateData.status, now, updateData.subdomainId);
+ 
+   return this.getCreatorSubdomain(updateData.subdomainId);
+-}
++  }
+ 
+ /**
+  * Delete a creator subdomain.
+@@ -1021,7 +1032,7 @@ updateSubdomainStatus(updateData) {
+  * @param {string} subdomainId Subdomain identifier.
+  * @returns {boolean}
+  */
+-deleteCreatorSubdomain(subdomainId) {
++  deleteCreatorSubdomain(subdomainId) {
+   const result = this.db
+     .prepare(
+       `
+@@ -1031,7 +1042,7 @@ deleteCreatorSubdomain(subdomainId) {
+     .run(subdomainId);
+ 
+   return result.changes > 0;
+-}
++  }
+ 
+ // ActivityPub Federation Methods
+ 
+@@ -1040,7 +1051,7 @@ deleteCreatorSubdomain(subdomainId) {
+  * @param {string} address Creator wallet address
+  * @returns {object|null}
+  */
+-getCreator(address) {
++  getCreator(address) {
+   const row = this.db
+     .prepare(
+       `
+@@ -1052,14 +1063,14 @@ getCreator(address) {
+     .get(address);
+ 
+   return row || null;
+-}
++  }
+ 
+ /**
+  * Get content information for federation
+  * @param {string} contentId Content ID
+  * @returns {object|null}
+  */
+-getContent(contentId) {
++  getContent(contentId) {
+   const row = this.db
+     .prepare(
+       `
+@@ -1075,7 +1086,7 @@ getContent(contentId) {
+   }
+ 
+   return row || null;
+-}
++  }
+ 
+ /**
+  * Get creator's content for outbox
+@@ -1083,7 +1094,7 @@ getContent(contentId) {
+  * @param {object} options Query options
+  * @returns {object[]}
+  */
+-getCreatorContent(creatorAddress, options = {}) {
++  getCreatorContent(creatorAddress, options = {}) {
+   const { limit = 20, offset = 0 } = options;
+ 
+   const rows = this.db
+@@ -1104,14 +1115,14 @@ getCreatorContent(creatorAddress, options = {}) {
+     }
+     return row;
+   });
+-}
++  }
+ 
+ /**
+  * Get creator's content count
+  * @param {string} creatorAddress Creator wallet address
+  * @returns {number}
+  */
+-getCreatorContentCount(creatorAddress) {
++  getCreatorContentCount(creatorAddress) {
+   const row = this.db
+     .prepare(
+       `
+@@ -1123,14 +1134,14 @@ getCreatorContentCount(creatorAddress) {
+     .get(creatorAddress);
+ 
+   return row.count || 0;
+-}
++  }
+ 
+ /**
+  * Add ActivityPub follower
+  * @param {object} followerData Follower information
+  * @returns {object}
+  */
+-addFollower(followerData) {
++  addFollower(followerData) {
+   const id = crypto.randomUUID();
+ 
+   this.db
+@@ -1155,14 +1166,14 @@ addFollower(followerData) {
+   return this.db
+     .prepare('SELECT * FROM activitypub_followers WHERE id = ?')
+     .get(id);
+-}
++  }
+ 
+ /**
+  * Remove ActivityPub follower
+  * @param {object} followerData Follower information
+  * @returns {boolean}
+  */
+-removeFollower(followerData) {
++  removeFollower(followerData) {
+   const result = this.db
+     .prepare(
+       `
+@@ -1173,14 +1184,14 @@ removeFollower(followerData) {
+     .run(followerData.creator_address, followerData.follower_actor);
+ 
+   return result.changes > 0;
+-}
++  }
+ 
+ /**
+  * Add ActivityPub engagement
+  * @param {object} engagementData Engagement information
+  * @returns {object}
+  */
+-addEngagement(engagementData) {
++  addEngagement(engagementData) {
+   const id = crypto.randomUUID();
+ 
+   this.db
+@@ -1206,14 +1217,14 @@ addEngagement(engagementData) {
+   return this.db
+     .prepare('SELECT * FROM activitypub_engagements WHERE id = ?')
+     .get(id);
+-}
++  }
+ 
+ /**
+  * Get creator subscriber count
+  * @param {string} creatorId Creator ID
+  * @returns {number}
+  */
+-getCreatorSubscriberCount(creatorId) {
++  getCreatorSubscriberCount(creatorId) {
+   const row = this.db
+     .prepare(
+       `
+@@ -1225,14 +1236,14 @@ getCreatorSubscriberCount(creatorId) {
+     .get(creatorId);
+ 
+   return row.count || 0;
+-}
++  }
+ 
+ /**
+  * Get privacy preferences for a wallet address
+  * @param {string} walletAddress
+  * @returns {object|null}
+  */
+-getPrivacyPreferences(walletAddress) {
++  getPrivacyPreferences(walletAddress) {
+   const row = this.db
+     .prepare(
+       `
+@@ -1250,7 +1261,7 @@ getPrivacyPreferences(walletAddress) {
+     share_email_with_merchants: Boolean(row.share_email_with_merchants),
+     allow_marketing: Boolean(row.allow_marketing),
+   };
+-}
++  }
+ 
+ /**
+  * Create or update privacy preferences
+@@ -1258,7 +1269,7 @@ getPrivacyPreferences(walletAddress) {
+  * @param {object} preferences
+  * @returns {object}
+  */
+-upsertPrivacyPreferences(walletAddress, preferences) {
++  upsertPrivacyPreferences(walletAddress, preferences) {
+   const now = new Date().toISOString();
+   
+   // Use INSERT OR REPLACE or similar depending on DB
+@@ -1283,13 +1294,13 @@ upsertPrivacyPreferences(walletAddress, preferences) {
+     );
+ 
+   return this.getPrivacyPreferences(walletAddress);
+-}
++  }
+ 
+ /**
+  * Create a new dunning sequence
+  * @param {object} sequence
+  */
+-createDunningSequence(sequence) {
++  createDunningSequence(sequence) {
+   this.db
+     .prepare(
+       `
+@@ -1310,13 +1321,13 @@ createDunningSequence(sequence) {
+       new Date().toISOString(),
+       new Date().toISOString()
+     );
+-}
++  }
+ 
+ /**
+  * Get active dunning sequences that need notification
+  * @returns {object[]}
+  */
+-getActiveDunningSequences() {
++  getActiveDunningSequences() {
+   return this.db
+     .prepare(
+       `
+@@ -1325,14 +1336,14 @@ getActiveDunningSequences() {
+       `,
+     )
+     .all(new Date().toISOString());
+-}
++  }
+ 
+ /**
+  * Update a dunning sequence
+  * @param {string} id
+  * @param {object} updates
+  */
+-updateDunningSequence(id, updates) {
++  updateDunningSequence(id, updates) {
+   const fields = Object.keys(updates);
+   const values = Object.values(updates);
+   const setClause = fields.map(f => `${f} = ?`).join(', ');
+@@ -1340,14 +1351,14 @@ updateDunningSequence(id, updates) {
+   this.db
+     .prepare(`UPDATE dunning_sequences SET ${setClause}, updated_at = ? WHERE id = ?`)
+     .run(...values, new Date().toISOString(), id);
+-}
++  }
+ 
+ /**
+  * Halt an active dunning sequence
+  * @param {string} walletAddress
+  * @param {string} creatorId
+  */
+-haltDunningSequence(walletAddress, creatorId) {
++  haltDunningSequence(walletAddress, creatorId) {
+   this.db
+     .prepare(
+       `
+@@ -1357,13 +1368,13 @@ haltDunningSequence(walletAddress, creatorId) {
+       `,
+     )
+     .run(new Date().toISOString(), walletAddress, creatorId);
+-}
++  }
+ 
+ /**
+  * Record dunning event history
+  * @param {object} history
+  */
+-recordDunningHistory(history) {
++  recordDunningHistory(history) {
+   this.db
+     .prepare(
+       `
+@@ -1380,9 +1391,10 @@ recordDunningHistory(history) {
+       history.status,
+       JSON.stringify(history.metadata_json || {})
+     );
+-}
+-}
++  }
++  }
+ 
+ module.exports = {
+   AppDatabase,
++  getDatabase: (filename) => new AppDatabase(filename),
+ };
+\ No newline at end of file

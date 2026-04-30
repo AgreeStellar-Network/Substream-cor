@@ -127,6 +127,42 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
+    const data = JSON.stringify(value);
+    if (ttlSeconds) {
+      await this.publisher.set(key, data, 'EX', ttlSeconds);
+    } else {
+      await this.publisher.set(key, data);
+    }
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    const data = await this.publisher.get(key);
+    if (!data) return null;
+    try {
+      return JSON.parse(data) as T;
+    } catch (error) {
+      console.error(`Failed to parse Redis data for key ${key}:`, error);
+      return null;
+    }
+  }
+
+  async del(key: string): Promise<void> {
+    await this.publisher.del(key);
+  }
+
+  async lpush(key: string, value: string): Promise<void> {
+    await this.publisher.lpush(key, value);
+  }
+
+  async ltrim(key: string, start: number, end: number): Promise<void> {
+    await this.publisher.ltrim(key, start, end);
+  }
+
+  async expire(key: string, seconds: number): Promise<void> {
+    await this.publisher.expire(key, seconds);
+  }
+
   getPublisherStatus(): string {
     return this.publisher.status;
   }

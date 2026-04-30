@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../index');
 const tenantConfigurationService = require('../src/services/tenantConfigurationService');
 const { getDatabase } = require('../src/db/appDatabase');
+const { AuthService } = require('../src/services/auth.service');
 
 describe('Tenant Configuration Service', () => {
   let db;
@@ -280,6 +281,7 @@ describe('Feature Flag API Routes', () => {
 
   beforeAll(async () => {
     const db = getDatabase();
+    const authService = new AuthService();
     
     // Create test tenant and user
     const [tenant] = await db('tenants').insert({
@@ -291,8 +293,16 @@ describe('Feature Flag API Routes', () => {
 
     testTenantId = tenant.id;
 
-    // Create test user and get auth token (mock for now)
-    authToken = 'Bearer mock-token';
+    // Create test user and get auth token
+    const member = {
+      id: 'member-api-test',
+      email: 'api-test@example.com',
+      organizationId: testTenantId,
+      role: 'ADMIN',
+      permissions: ['merchants:read', 'merchants:write']
+    };
+
+    authToken = `Bearer ${authService.generateMemberToken(member)}`;
   });
 
   describe('GET /api/v1/config/flags', () => {

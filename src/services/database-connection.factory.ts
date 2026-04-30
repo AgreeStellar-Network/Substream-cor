@@ -1,10 +1,13 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Knex } from 'knex';
 import { TenantRouterService } from './tenant-router.service';
+import { getKnexPoolConfig, readPositiveInt } from '../database/poolConfig';
 
 @Injectable()
 export class DatabaseConnectionFactory {
   private readonly connectionPool = new Map<string, Knex>();
+  private readonly maxCachedPools = readPositiveInt(process.env.DB_TENANT_POOL_CACHE_MAX, 10);
+  private readonly tenantPoolMax = readPositiveInt(process.env.DB_TENANT_POOL_MAX, 4);
 
   constructor(private readonly tenantRouter: TenantRouterService) {}
 
@@ -16,12 +19,17 @@ export class DatabaseConnectionFactory {
     
     // Check if connection already exists in pool
     if (this.connectionPool.has(connectionString)) {
-      return this.connectionPool.get(connectionString)!;
+      const connection = this.connectionPool.get(connectionString)!;
+      this.connectionPool.delete(connectionString);
+      this.connectionPool.set(connectionString, connection);
+      return connection;
     }
 
     // Create new connection
     const connection = this.createConnection(connectionString);
     
+    await this.evictOldestConnectionIfNeeded();
+
     // Add to pool
     this.connectionPool.set(connectionString, connection);
     
@@ -35,10 +43,14 @@ export class DatabaseConnectionFactory {
     const connectionString = await this.tenantRouter.getSharedDatabase();
     
     if (this.connectionPool.has(connectionString)) {
-      return this.connectionPool.get(connectionString)!;
+      const connection = this.connectionPool.get(connectionString)!;
+      this.connectionPool.delete(connectionString);
+      this.connectionPool.set(connectionString, connection);
+      return connection;
     }
 
     const connection = this.createConnection(connectionString);
+    await this.evictOldestConnectionIfNeeded();
     this.connectionPool.set(connectionString, connection);
     
     return connection;
@@ -54,16 +66,7 @@ export class DatabaseConnectionFactory {
     return require('knex')({
       client: 'pg',
       connection: config,
-      pool: {
-        min: 2,
-        max: 20,
-        acquireTimeoutMillis: 60000,
-        createTimeoutMillis: 30000,
-        destroyTimeoutMillis: 5000,
-        idleTimeoutMillis: 30000,
-        reapIntervalMillis: 1000,
-        createRetryIntervalMillis: 100,
-      },
+      pool: getKnexPoolConfig(process.env, { max: this.tenantPoolMax }),
       migrations: {
         directory: './migrations/knex',
         tableName: 'knex_migrations',
@@ -129,7 +132,7 @@ export class DatabaseConnectionFactory {
     this.connectionPool.forEach((connection, connectionString) => {
       const pool = connection.client?.pool;
       if (pool) {
-        stats[connectionString] = {
+        stats[this.maskConnectionString(connectionString)] = {
           used: pool.numUsed(),
           free: pool.numFree(),
           pending: pool.numPendingAcquires(),
@@ -139,6 +142,33 @@ export class DatabaseConnectionFactory {
     });
 
     return stats;
+  }
+
+  private maskConnectionString(connectionString: string): string {
+    try {
+      const url = new URL(connectionString);
+      return `${url.protocol}//${url.hostname}:${url.port || '5432'}/${url.pathname.substring(1)}`;
+    } catch {
+      return 'database-config';
+    }
+  }
+
+  private async evictOldestConnectionIfNeeded(): Promise<void> {
+    if (this.connectionPool.size < this.maxCachedPools) {
+      return;
+    }
+
+    const oldestConnectionString = this.connectionPool.keys().next().value;
+    if (!oldestConnectionString) {
+      return;
+    }
+
+    const oldestConnection = this.connectionPool.get(oldestConnectionString);
+    this.connectionPool.delete(oldestConnectionString);
+
+    if (oldestConnection) {
+      await oldestConnection.destroy();
+    }
   }
 
   /**

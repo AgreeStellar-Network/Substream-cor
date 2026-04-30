@@ -9,11 +9,11 @@
 exports.up = async function(knex) {
   // Create tenant_configurations table
   await knex.schema.createTable('tenant_configurations', function(table) {
-    table.uuid('id').primary().defaultTo(knex.raw('(gen_random_uuid())'));
-    table.uuid('tenant_id').notNullable();
+    table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
+    table.string('tenant_id').notNullable();
     table.string('flag_name', 100).notNullable();
     table.boolean('flag_value').defaultTo(false);
-    table.jsonb('metadata').defaultTo('{}');
+    table.json('metadata').defaultTo('{}');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     
@@ -28,14 +28,14 @@ exports.up = async function(knex) {
 
   // Create feature_flag_audit_log table
   await knex.schema.createTable('feature_flag_audit_log', function(table) {
-    table.uuid('id').primary().defaultTo(knex.raw('(gen_random_uuid())'));
-    table.uuid('tenant_id').notNullable();
+    table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
+    table.string('tenant_id').notNullable();
     table.string('flag_name', 100).notNullable();
     table.boolean('old_value');
     table.boolean('new_value').notNullable();
     table.string('changed_by', 255).notNullable(); // User or system that made the change
     table.string('change_reason', 500);
-    table.jsonb('metadata').defaultTo('{}');
+    table.json('metadata').defaultTo('{}');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     
     // Indexes for audit queries
@@ -57,22 +57,22 @@ exports.up = async function(knex) {
       '{"auto_created": true}' as metadata
     FROM tenants t
     CROSS JOIN (
-      VALUES 
-        ('enable_crypto_checkout', false),
-        ('enable_b2b_invoicing', false),
-        ('require_kyc_for_subs', false),
-        ('enable_advanced_analytics', false),
-        ('enable_api_webhooks', false),
-        ('enable_custom_branding', false),
-        ('enable_priority_support', false),
-        ('enable_bulk_operations', false)
-    ) AS f(flag_name, default_value)
+      SELECT 'enable_crypto_checkout' AS flag_name, 0 AS default_value
+      UNION ALL SELECT 'enable_b2b_invoicing', 0
+      UNION ALL SELECT 'require_kyc_for_subs', 0
+      UNION ALL SELECT 'enable_advanced_analytics', 0
+      UNION ALL SELECT 'enable_api_webhooks', 0
+      UNION ALL SELECT 'enable_custom_branding', 0
+      UNION ALL SELECT 'enable_priority_support', 0
+      UNION ALL SELECT 'enable_bulk_operations', 0
+    ) AS f
     WHERE NOT EXISTS (
       SELECT 1 FROM tenant_configurations tc 
       WHERE tc.tenant_id = t.id AND tc.flag_name = f.flag_name
     )
   `);
 };
+
 
 exports.down = async function(knex) {
   await knex.schema.dropTableIfExists('feature_flag_audit_log');

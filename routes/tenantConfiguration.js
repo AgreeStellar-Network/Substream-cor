@@ -2,12 +2,19 @@ const express = require('express');
 const router = express.Router();
 const tenantConfigurationService = require('../src/services/tenantConfigurationService');
 const { requireFeatureFlag } = require('../middleware/featureFlags');
+const {
+  ADMIN_ROLES,
+  READ_ROLES,
+  requireRbacUser,
+  requireRole,
+  requirePermissionOrRole
+} = require('../middleware/merchantConfigRbac');
 
 /**
  * GET /api/v1/config/flags
  * Get all feature flags for the authenticated tenant
  */
-router.get('/flags', async (req, res) => {
+router.get('/flags', requireRbacUser, requirePermissionOrRole('merchants:read', READ_ROLES), async (req, res) => {
   try {
     const tenantId = req.user?.tenant_id || req.tenant?.id;
     
@@ -41,7 +48,7 @@ router.get('/flags', async (req, res) => {
  * GET /api/v1/config/flags/:flagName
  * Get a specific feature flag value
  */
-router.get('/flags/:flagName', async (req, res) => {
+router.get('/flags/:flagName', requireRbacUser, requirePermissionOrRole('merchants:read', READ_ROLES), async (req, res) => {
   try {
     const tenantId = req.user?.tenant_id || req.tenant?.id;
     const { flagName } = req.params;
@@ -77,7 +84,7 @@ router.get('/flags/:flagName', async (req, res) => {
  * PUT /api/v1/config/flags/:flagName
  * Update a feature flag (admin only)
  */
-router.put('/flags/:flagName', async (req, res) => {
+router.put('/flags/:flagName', requireRbacUser, requirePermissionOrRole('merchants:write', ADMIN_ROLES), async (req, res) => {
   try {
     const tenantId = req.user?.tenant_id || req.tenant?.id;
     const { flagName } = req.params;
@@ -132,7 +139,7 @@ router.put('/flags/:flagName', async (req, res) => {
  * GET /api/v1/config/flags/:flagName/audit
  * Get audit history for a specific feature flag
  */
-router.get('/flags/:flagName/audit', async (req, res) => {
+router.get('/flags/:flagName/audit', requireRbacUser, requirePermissionOrRole('merchants:read', READ_ROLES), async (req, res) => {
   try {
     const tenantId = req.user?.tenant_id || req.tenant?.id;
     const { flagName } = req.params;
@@ -181,7 +188,7 @@ router.get('/flags/:flagName/audit', async (req, res) => {
  * DELETE /api/v1/config/cache
  * Clear cache for tenant (admin only)
  */
-router.delete('/cache', async (req, res) => {
+router.delete('/cache', requireRbacUser, requirePermissionOrRole('merchants:write', ADMIN_ROLES), async (req, res) => {
   try {
     const tenantId = req.user?.tenant_id || req.tenant?.id;
     
@@ -215,7 +222,7 @@ router.delete('/cache', async (req, res) => {
  * GET /api/v1/config/metrics
  * Get performance metrics (admin only)
  */
-router.get('/metrics', async (req, res) => {
+router.get('/metrics', requireRbacUser, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     // This should be protected by admin middleware
     const metrics = tenantConfigurationService.getMetrics();

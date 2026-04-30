@@ -150,7 +150,7 @@ export class TenantRouterService {
   /**
    * Get shared database connection string
    */
-  private async getSharedDatabase(): Promise<string> {
+  async getSharedDatabase(): Promise<string> {
     const sharedConfig = await this.redis.hgetall(this.SHARED_DB_KEY);
     
     if (!sharedConfig.connectionString) {

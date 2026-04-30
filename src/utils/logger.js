@@ -10,6 +10,7 @@
 
 const winston = require('winston');
 const { v4: uuidv4 } = require('uuid');
+const { trace, context } = require('@opentelemetry/api');
 
 // Custom format for structured logging
 const { combine, timestamp, json, errors, splat } = winston.format;
@@ -75,32 +76,41 @@ function createLoggerContext(traceId, additionalContext = {}) {
  * Middleware to add trace ID to all requests
  */
 function requestTracingMiddleware(req, res, next) {
-  // Get or create trace ID
-  const traceId = req.headers['x-trace-id'] || uuidv4();
-  
-  // Add trace ID to response headers
+  const activeSpan = trace.getSpan(context.active());
+  const spanContext = activeSpan?.spanContext();
+  const traceId = req.headers['x-trace-id'] || spanContext?.traceId || uuidv4();
+  const spanId = spanContext?.spanId;
+
+  // Add trace headers for downstream correlation
   res.setHeader('x-trace-id', traceId);
-  
-  // Attach logger to request with context
+  if (spanId) {
+    res.setHeader('x-span-id', spanId);
+  }
+
   req.logger = logger.child({
     traceId,
+    spanId,
     method: req.method,
     path: req.path,
     ip: req.ip,
     userAgent: req.headers['user-agent'],
   });
-  
+
+  // Preserve trace fields for downstream error handling
+  req.logger.fields = { traceId, spanId };
+
   // Track request timing
   const startTime = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     const context = {
       traceId,
+      spanId,
       statusCode: res.statusCode,
       duration: `${duration}ms`,
     };
-    
+
     if (res.statusCode >= 500) {
       logger.error('Request failed', context);
     } else if (res.statusCode >= 400) {
@@ -109,7 +119,7 @@ function requestTracingMiddleware(req, res, next) {
       logger.info('Request completed', context);
     }
   });
-  
+
   next();
 }
 

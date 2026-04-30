@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { getPgPoolConfig } = require('./poolConfig');
 require('dotenv').config();
 
 class DatabaseConnection {
@@ -9,9 +10,11 @@ class DatabaseConnection {
       database: process.env.DB_NAME,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      max: 20, // Maximum number of clients in the pool
-      idleTimeoutMillis: 30000, // How long a client is allowed to remain idle
-      connectionTimeoutMillis: 2000, // How long to wait when connecting
+      ...getPgPoolConfig(),
+    });
+
+    this.pool.on('error', (error) => {
+      console.error('Unexpected PostgreSQL pool error', { error: error.message });
     });
   }
 
@@ -30,6 +33,14 @@ class DatabaseConnection {
 
   async getClient() {
     return await this.pool.connect();
+  }
+
+  getPoolStats() {
+    return {
+      total: this.pool.totalCount,
+      idle: this.pool.idleCount,
+      waiting: this.pool.waitingCount,
+    };
   }
 
   async close() {

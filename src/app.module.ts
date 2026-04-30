@@ -3,6 +3,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { WebSocketGatewayModule } from './websocket/websocket-gateway.module';
 import { RedisModule } from './redis/redis.module';
+import { Sep38Module } from './sep38/sep38.module';
 import { TenantDataLeakageInterceptor } from './interceptors/tenant-data-leakage.interceptor';
 import { TenantRouterService } from './services/tenant-router.service';
 import { DatabaseConnectionFactory } from './services/database-connection.factory';
@@ -14,6 +15,7 @@ import { TenantDatabaseRoutingMiddleware } from './middleware/tenant-database-ro
     AuthModule,
     WebSocketGatewayModule,
     RedisModule,
+    Sep38Module,
   ],
   providers: [
     {

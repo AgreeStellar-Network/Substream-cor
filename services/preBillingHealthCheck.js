@@ -12,6 +12,9 @@ class PreBillingHealthCheck {
     this.warningThresholdDays = config.warningThresholdDays || 3;
     this.batchSize = config.batchSize || 50;
     this.maxRetries = config.maxRetries || 3;
+    // Optional SeasonalPauseService — when present, paused plans are skipped
+    // and skipped_cycles are recorded for reconciliation on resume.
+    this.seasonalPauseService = config.seasonalPauseService || null;
 
     if (!this.database) {
       throw new Error('database is required');
@@ -72,20 +75,36 @@ class PreBillingHealthCheck {
 
     try {
       // Get subscriptions due for billing in exactly 3 days
-      const subscriptions = this.getSubscriptionsDueForBilling(targetDate);
-      console.log(`Found ${subscriptions.length} subscriptions due for billing on ${targetDate.toISOString()}`);
+      const allDue = this.getSubscriptionsDueForBilling(targetDate);
+      console.log(`Found ${allDue.length} subscriptions due for billing on ${targetDate.toISOString()}`);
+
+      // Honor any active seasonal pause: paused plans skip the pull entirely
+      // and we record a skipped_cycle entry so resume math can reconcile.
+      const { active: subscriptions, skipped: skippedDuringPause } =
+        this.partitionPausedSubscriptions(allDue);
+
+      if (skippedDuringPause > 0) {
+        console.log(
+          `Skipped ${skippedDuringPause} paused subscriptions (Seasonally_Inactive)`
+        );
+      }
 
       if (subscriptions.length === 0) {
         return {
           processed: 0,
           warningsSent: 0,
           errors: 0,
-          message: 'No subscriptions due for billing in the warning window'
+          skipped: skippedDuringPause,
+          message:
+            skippedDuringPause > 0
+              ? 'All due subscriptions belonged to paused plans and were skipped'
+              : 'No subscriptions due for billing in the warning window'
         };
       }
 
       // Process subscriptions in batches
       const results = await this.processSubscriptions(subscriptions);
+      results.skipped = skippedDuringPause;
 
       // Clean up expired cache entries
       this.balanceChecker.clearExpiredCache();
@@ -274,6 +293,43 @@ class PreBillingHealthCheck {
       SET warning_sent_at = ?
       WHERE creator_id = ? AND wallet_address = ?
     `).run(now, subscription.creatorId, subscription.walletAddress);
+  }
+
+  /**
+   * Split a list of due subscriptions into ones that should bill and ones
+   * whose plan is currently Seasonally_Inactive. For each skipped subscription
+   * we record a skipped_cycles row so resume can reconcile correctly.
+   *
+   * @param {Array} subscriptions
+   * @returns {{active: Array, skipped: number}}
+   */
+  partitionPausedSubscriptions(subscriptions) {
+    if (!this.seasonalPauseService || subscriptions.length === 0) {
+      return { active: subscriptions, skipped: 0 };
+    }
+
+    const active = [];
+    let skipped = 0;
+
+    for (const sub of subscriptions) {
+      const planId = sub.stripePlanId;
+      if (planId && this.seasonalPauseService.isPlanPaused(planId)) {
+        const result = this.seasonalPauseService.maybeSkipBilling({
+          planId,
+          creatorId: sub.creatorId,
+          walletAddress: sub.walletAddress,
+          scheduledBillingDate: sub.nextBillingDate,
+          requiredAmount: sub.requiredAmount || 0,
+        });
+        if (result.skipped) {
+          skipped += 1;
+          continue;
+        }
+      }
+      active.push(sub);
+    }
+
+    return { active, skipped };
   }
 
   /**

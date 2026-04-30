@@ -1,4 +1,4 @@
-const { getRedisClient } = require('../config/redis');
+const { getRedisClient, circuitBreaker } = require('../config/redis');
 
 /**
  * Service for caching and retrieving global statistics with Redis.
@@ -17,24 +17,49 @@ class GlobalStatsService {
       totalSubscriptions: 'global_stats:total_subscriptions',
       lastUpdated: 'global_stats:last_updated'
     };
+    // Stale keys mirror the primary keys but survive much longer (24 h).
+    this.staleKeys = Object.fromEntries(
+      Object.entries(this.cacheKeys).map(([k, v]) => [k, `${v}:stale`])
+    );
     this.ttlSeconds = 60;
+    this.staleTtlSeconds = 86400; // 24 h
   }
 
   /**
    * Get cached global stats or compute them if cache is empty.
+   * Falls back to stale data when Redis is unavailable, and to a live DB
+   * query only when no stale copy exists either.
    * @returns {Promise<Object>} Global statistics object
    */
   async getGlobalStats() {
+    // Fast-path: circuit breaker is OPEN → serve stale immediately
+    if (!circuitBreaker.isHealthy()) {
+      const stale = await this._getStaleStats();
+      if (stale) {
+        console.warn('[GlobalStats] Redis circuit open – serving stale stats');
+        return stale;
+      }
+      // No stale data yet; compute from DB (cold start scenario)
+      return this.computeFreshStats();
+    }
+
     try {
       const cached = await this.getCachedStats();
-      if (cached) {
-        return cached;
-      }
-
+      if (cached) return cached;
       return await this.computeAndCacheStats();
     } catch (error) {
-      console.error('Error fetching global stats:', error);
-      throw new Error('Failed to retrieve global statistics');
+      console.error('[GlobalStats] Redis error, attempting stale fallback:', error.message);
+      circuitBreaker.recordFailure();
+
+      const stale = await this._getStaleStats();
+      if (stale) {
+        console.warn('[GlobalStats] Serving stale stats due to Redis error');
+        return stale;
+      }
+
+      // Last resort: compute directly from DB without caching
+      console.warn('[GlobalStats] No stale data – falling back to live DB query');
+      return this.computeFreshStats();
     }
   }
 
@@ -110,12 +135,14 @@ class GlobalStatsService {
 
   /**
    * Cache statistics in Redis with TTL.
+   * Also writes long-lived stale copies used as fallback during outages.
    * @param {Object} stats Statistics to cache
    */
   async cacheStats(stats) {
     try {
       const pipeline = this.redis.pipeline();
-      
+
+      // Primary keys (short TTL)
       pipeline.setex(this.cacheKeys.totalValueLocked, this.ttlSeconds, JSON.stringify(stats.totalValueLocked));
       pipeline.setex(this.cacheKeys.trendingCreators, this.ttlSeconds, JSON.stringify(stats.trendingCreators));
       pipeline.setex(this.cacheKeys.totalUsers, this.ttlSeconds, stats.totalUsers.toString());
@@ -124,10 +151,47 @@ class GlobalStatsService {
       pipeline.setex(this.cacheKeys.totalSubscriptions, this.ttlSeconds, stats.totalSubscriptions.toString());
       pipeline.setex(this.cacheKeys.lastUpdated, this.ttlSeconds, stats.lastUpdated);
 
+      // Stale copies (long TTL – survive Redis restarts / outages)
+      pipeline.setex(this.staleKeys.totalValueLocked, this.staleTtlSeconds, JSON.stringify(stats.totalValueLocked));
+      pipeline.setex(this.staleKeys.trendingCreators, this.staleTtlSeconds, JSON.stringify(stats.trendingCreators));
+      pipeline.setex(this.staleKeys.totalUsers, this.staleTtlSeconds, stats.totalUsers.toString());
+      pipeline.setex(this.staleKeys.totalCreators, this.staleTtlSeconds, stats.totalCreators.toString());
+      pipeline.setex(this.staleKeys.totalVideos, this.staleTtlSeconds, stats.totalVideos.toString());
+      pipeline.setex(this.staleKeys.totalSubscriptions, this.staleTtlSeconds, stats.totalSubscriptions.toString());
+      pipeline.setex(this.staleKeys.lastUpdated, this.staleTtlSeconds, stats.lastUpdated);
+
       await pipeline.exec();
+      circuitBreaker.recordSuccess();
       console.log('Global stats cached successfully');
     } catch (error) {
       console.error('Error caching stats:', error);
+      circuitBreaker.recordFailure();
+    }
+  }
+
+  /**
+   * Read stale fallback stats from Redis.
+   * Returns null if stale data is unavailable or Redis is unreachable.
+   * @returns {Promise<Object|null>}
+   */
+  async _getStaleStats() {
+    try {
+      const tvl = await this.redis.get(this.staleKeys.totalValueLocked);
+      if (!tvl) return null;
+
+      return {
+        totalValueLocked: JSON.parse(tvl),
+        trendingCreators: JSON.parse(await this.redis.get(this.staleKeys.trendingCreators) || '[]'),
+        totalUsers: parseInt(await this.redis.get(this.staleKeys.totalUsers) || '0'),
+        totalCreators: parseInt(await this.redis.get(this.staleKeys.totalCreators) || '0'),
+        totalVideos: parseInt(await this.redis.get(this.staleKeys.totalVideos) || '0'),
+        totalSubscriptions: parseInt(await this.redis.get(this.staleKeys.totalSubscriptions) || '0'),
+        lastUpdated: await this.redis.get(this.staleKeys.lastUpdated),
+        stale: true,
+      };
+    } catch (error) {
+      console.error('[GlobalStats] Failed to read stale stats:', error.message);
+      return null;
     }
   }
 
@@ -303,16 +367,34 @@ class GlobalStatsService {
     try {
       const lastUpdated = await this.redis.get(this.cacheKeys.lastUpdated);
       const ttl = await this.redis.ttl(this.cacheKeys.totalValueLocked);
-      
+      const staleLastUpdated = await this.redis.get(this.staleKeys.lastUpdated);
+      const staleTtl = await this.redis.ttl(this.staleKeys.totalValueLocked);
+
       return {
         lastUpdated: lastUpdated ? new Date(lastUpdated).toISOString() : null,
         ttlSeconds: ttl,
         cacheKeys: this.cacheKeys,
-        ttlConfig: this.ttlSeconds
+        ttlConfig: this.ttlSeconds,
+        stale: {
+          lastUpdated: staleLastUpdated ? new Date(staleLastUpdated).toISOString() : null,
+          ttlSeconds: staleTtl,
+          ttlConfig: this.staleTtlSeconds,
+        },
+        circuitBreaker: {
+          state: circuitBreaker.state,
+          failures: circuitBreaker.failures,
+          threshold: circuitBreaker.threshold,
+        },
       };
     } catch (error) {
       console.error('Error getting cache status:', error);
-      return null;
+      return {
+        circuitBreaker: {
+          state: circuitBreaker.state,
+          failures: circuitBreaker.failures,
+          threshold: circuitBreaker.threshold,
+        },
+      };
     }
   }
 }

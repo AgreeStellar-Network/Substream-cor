@@ -2,7 +2,7 @@ exports.up = function(knex) {
   return knex.schema
     // Content collaborations table
     .createTable('content_collaborations', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('content_id').notNullable().references('id').inTable('content').onDelete('CASCADE');
       table.string('primary_creator_address').notNullable().index();
       table.enum('status', ['active', 'inactive', 'completed']).defaultTo('active').index();
@@ -56,7 +56,7 @@ exports.up = function(knex) {
     
     // Revenue attribution logs table
     .createTable('revenue_attribution_logs', function(table) {
-      table.string('id').primary().defaultTo(knex.raw('lower(hex(randomblob(16)))'));
+      table.string('id').primary().defaultTo(knex.raw('(lower(hex(randomblob(16))))'));
       table.string('collaboration_id').notNullable().references('id').inTable('content_collaborations').onDelete('CASCADE');
       table.string('period_start').notNullable();
       table.string('period_end').notNullable();

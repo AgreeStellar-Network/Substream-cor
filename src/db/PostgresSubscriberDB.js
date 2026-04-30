@@ -3,44 +3,18 @@
 
 const { Pool } = require('pg');
 const cacheManager = require('../utils/cache');
+const { getPgPoolConfig } = require('../database/poolConfig');
 
 class PostgresSubscriberDB {
     constructor(connectionString) {
-        // Dynamic pool sizing based on environment
-        const maxConnections = process.env.DB_MAX_CONNECTIONS ? 
-            parseInt(process.env.DB_MAX_CONNECTIONS) : 
-            Math.max(20, Math.min(50, require('os').cpus().length * 5));
-            
         this.pool = new Pool({
             connectionString,
-            max: maxConnections, // Scaled connection pool for HPA events
-            min: Math.min(5, Math.floor(maxConnections / 4)), // Minimum connections
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 5000, // Increased timeout for scale-up scenarios
-            acquireTimeoutMillis: 10000,
-            createTimeoutMillis: 30000,
-            destroyTimeoutMillis: 5000,
-            reapIntervalMillis: 1000,
-            createRetryIntervalMillis: 200,
+            ...getPgPoolConfig(),
         });
-        
-        // Prepare statements for optimal performance
-        this.prepareStatements();
-    }
 
-    async prepareStatements() {
-        const client = await this.pool.connect();
-        try {
-            // Prepare commonly used queries for optimal performance
-            await client.query('PREPARE get_fan_list (TEXT, INTEGER, INTEGER) AS SELECT wallet_address, subscribed_at, active FROM subscriptions WHERE creator_id = $1 AND active = 1 ORDER BY subscribed_at DESC LIMIT $2 OFFSET $3');
-            await client.query('PREPARE count_active_fans (TEXT) AS SELECT COUNT(*) as count FROM subscriptions WHERE creator_id = $1 AND active = 1');
-            await client.query('PREPARE get_recent_fans (TEXT) AS SELECT wallet_address, subscribed_at FROM subscriptions WHERE creator_id = $1 AND active = 1 AND subscribed_at >= NOW() - INTERVAL \'30 days\' ORDER BY subscribed_at DESC');
-            await client.query('PREPARE check_subscription (TEXT, TEXT) AS SELECT active, subscribed_at, unsubscribed_at FROM subscriptions WHERE creator_id = $1 AND wallet_address = $2');
-            
-            console.log('✅ Prepared statements initialized');
-        } finally {
-            client.release();
-        }
+        this.pool.on('error', (error) => {
+            console.error('Unexpected subscriber PostgreSQL pool error', { error: error.message });
+        });
     }
 
     /**
@@ -54,7 +28,7 @@ class PostgresSubscriberDB {
             const startTime = Date.now();
             
             const result = await client.query(
-                'EXECUTE get_fan_list($1, $2, $3)',
+                'SELECT wallet_address, subscribed_at, active FROM subscriptions WHERE creator_id = $1 AND active = 1 ORDER BY subscribed_at DESC LIMIT $2 OFFSET $3',
                 [creatorId, limit, offset]
             );
             
@@ -87,15 +61,19 @@ class PostgresSubscriberDB {
     async countActiveFans(creatorId) {
         const client = await this.pool.connect();
         try {
-            const result = await client.query(
-                'EXECUTE count_active_fans($1)',
-                [creatorId]
-            );
-            
-            return parseInt(result.rows[0].count);
+            return await this.countActiveFansWithClient(client, creatorId);
         } finally {
             client.release();
         }
+    }
+
+    async countActiveFansWithClient(client, creatorId) {
+        const result = await client.query(
+            'SELECT COUNT(*) as count FROM subscriptions WHERE creator_id = $1 AND active = 1',
+            [creatorId]
+        );
+
+        return parseInt(result.rows[0].count);
     }
 
     /**
@@ -107,11 +85,11 @@ class PostgresSubscriberDB {
         const client = await this.pool.connect();
         try {
             const result = await client.query(
-                'EXECUTE get_recent_fans($1)',
-                [creatorId]
+                'SELECT wallet_address, subscribed_at FROM subscriptions WHERE creator_id = $1 AND active = 1 AND subscribed_at >= NOW() - INTERVAL \'30 days\' ORDER BY subscribed_at DESC LIMIT $2',
+                [creatorId, limit]
             );
             
-            return result.rows.slice(0, limit);
+            return result.rows;
         } finally {
             client.release();
         }
@@ -126,7 +104,7 @@ class PostgresSubscriberDB {
         const client = await this.pool.connect();
         try {
             const result = await client.query(
-                'EXECUTE check_subscription($1, $2)',
+                'SELECT active, subscribed_at, unsubscribed_at FROM subscriptions WHERE creator_id = $1 AND wallet_address = $2',
                 [creatorId, walletAddress]
             );
             
@@ -173,7 +151,7 @@ class PostgresSubscriberDB {
             await client.query('COMMIT');
             
             // Return updated count
-            const count = await this.countActiveFans(creatorId);
+            const count = await this.countActiveFansWithClient(client, creatorId);
             return { changed, count };
         } catch (error) {
             await client.query('ROLLBACK');
@@ -199,7 +177,7 @@ class PostgresSubscriberDB {
             
             if (existingResult.rows.length === 0 || existingResult.rows[0].active !== 1) {
                 await client.query('ROLLBACK');
-                const count = await this.countActiveFans(creatorId);
+                const count = await this.countActiveFansWithClient(client, creatorId);
                 return { changed: false, count };
             }
             
@@ -211,7 +189,7 @@ class PostgresSubscriberDB {
             
             await client.query('COMMIT');
             
-            const count = await this.countActiveFans(creatorId);
+            const count = await this.countActiveFansWithClient(client, creatorId);
             return { changed: true, count };
         } catch (error) {
             await client.query('ROLLBACK');
@@ -236,10 +214,10 @@ class PostgresSubscriberDB {
                     COUNT(CASE WHEN active = 0 THEN 1 END) as churned_subscribers
                 FROM subscriptions 
                 WHERE creator_id = $1
-                  AND subscribed_at >= NOW() - INTERVAL '${timeRange}'
+                  AND subscribed_at >= NOW() - $2::interval
                 GROUP BY DATE_TRUNC('month', subscribed_at)
                 ORDER BY month DESC
-            `, [creatorId]);
+            `, [creatorId, timeRange]);
             
             return result.rows;
         } finally {
@@ -342,6 +320,14 @@ class PostgresSubscriberDB {
         } finally {
             client.release();
         }
+    }
+
+    getPoolStats() {
+        return {
+            total: this.pool.totalCount,
+            idle: this.pool.idleCount,
+            waiting: this.pool.waitingCount,
+        };
     }
 
     /**

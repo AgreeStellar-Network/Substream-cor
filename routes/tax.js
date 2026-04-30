@@ -2,155 +2,183 @@ const express = require('express');
 const router = express.Router();
 const taxService = require('../services/taxService');
 
-// Generate tax report for a creator
+function getService(req) {
+  const database = req.app?.get?.('database') || req.database || null;
+  return database ? taxService.withDatabase(database) : taxService;
+}
+
+function parseYear(year) {
+  const parsed = Number(year);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+router.post('/carf-dac8/report', async (req, res) => {
+  try {
+    const year = parseYear(req.body.reportingYear);
+    if (!year) {
+      return res.status(400).json({ success: false, error: 'reportingYear is required' });
+    }
+
+    const report = await getService(req).generateCarfDac8Report({
+      reportingYear: year,
+      jurisdiction: req.body.jurisdiction || 'US',
+      primaryCurrency: req.body.primaryCurrency || 'USD',
+      reportingPlatform: req.body.reportingPlatform || {},
+      generatedBy: req.user?.id || req.body.generatedBy || 'system',
+      store: req.body.store !== false,
+    });
+
+    return res.status(201).json({ success: true, data: report });
+  } catch (error) {
+    console.error('Error generating CARF/DAC8 report:', error);
+    return res.status(500).json({ success: false, error: 'Failed to generate CARF/DAC8 report' });
+  }
+});
+
+router.get('/admin/reports', (req, res) => {
+  try {
+    return res.json({ success: true, data: getService(req).listReports() });
+  } catch (error) {
+    console.error('Error listing tax reports:', error);
+    return res.status(500).json({ success: false, error: 'Failed to list tax reports' });
+  }
+});
+
+router.get('/admin/reports/:reportId', (req, res) => {
+  try {
+    const report = getService(req).getReport(req.params.reportId);
+    if (!report) {
+      return res.status(404).json({ success: false, error: 'Report not found' });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        reportId: report.report_id,
+        version: report.version,
+        status: report.status,
+        payloadHash: report.payload_hash,
+        previousHash: report.previous_hash,
+        json: JSON.parse(report.payload_json),
+        xml: report.payload_xml,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching tax report:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch tax report' });
+  }
+});
+
+router.post('/admin/reports/:reportId/sign-off', (req, res) => {
+  try {
+    const signer = req.user?.id || req.body.signedOffBy;
+    if (!signer) {
+      return res.status(400).json({ success: false, error: 'signedOffBy is required' });
+    }
+
+    const result = getService(req).signOffReport(req.params.reportId, signer, req.body.notes || '');
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    if (error.message === 'Report not found') {
+      return res.status(404).json({ success: false, error: error.message });
+    }
+    console.error('Error signing off tax report:', error);
+    return res.status(500).json({ success: false, error: 'Failed to sign off tax report' });
+  }
+});
+
 router.get('/report/:creatorAddress/:year', async (req, res) => {
   try {
     const { creatorAddress, year } = req.params;
-    
-    if (!creatorAddress || !year) {
-      return res.status(400).json({
-        success: false,
-        error: 'Creator address and year are required'
-      });
+    const parsedYear = parseYear(year);
+    if (!creatorAddress || !parsedYear) {
+      return res.status(400).json({ success: false, error: 'Creator address and year are required' });
     }
 
-    const report = await taxService.generateTaxReport(creatorAddress, parseInt(year));
-    
-    res.json({
-      success: true,
-      data: report
-    });
+    const report = await getService(req).generateTaxReport(creatorAddress, parsedYear);
+    return res.json({ success: true, data: report });
   } catch (error) {
     console.error('Error generating tax report:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate tax report'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to generate tax report' });
   }
 });
 
-// Download tax report as CSV
 router.get('/csv/:creatorAddress/:year', async (req, res) => {
   try {
     const { creatorAddress, year } = req.params;
-    
-    if (!creatorAddress || !year) {
-      return res.status(400).json({
-        success: false,
-        error: 'Creator address and year are required'
-      });
+    const parsedYear = parseYear(year);
+    if (!creatorAddress || !parsedYear) {
+      return res.status(400).json({ success: false, error: 'Creator address and year are required' });
     }
 
-    const csvReport = await taxService.generateTaxCSV(creatorAddress, parseInt(year));
-    
+    const csvReport = await getService(req).generateTaxCSV(creatorAddress, parsedYear);
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${csvReport.filename}"`);
-    res.send(csvReport.csvData);
+    return res.send(csvReport.csvData);
   } catch (error) {
     console.error('Error generating tax CSV:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate tax CSV'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to generate tax CSV' });
   }
 });
 
-// Get tax summary for a creator
 router.get('/summary/:creatorAddress/:year', async (req, res) => {
   try {
     const { creatorAddress, year } = req.params;
-    
-    if (!creatorAddress || !year) {
-      return res.status(400).json({
-        success: false,
-        error: 'Creator address and year are required'
-      });
+    const parsedYear = parseYear(year);
+    if (!creatorAddress || !parsedYear) {
+      return res.status(400).json({ success: false, error: 'Creator address and year are required' });
     }
 
-    const report = await taxService.generateTaxReport(creatorAddress, parseInt(year));
-    
-    res.json({
+    const report = await getService(req).generateTaxReport(creatorAddress, parsedYear);
+    return res.json({
       success: true,
       data: {
         creatorAddress,
-        year,
+        year: parsedYear,
         summary: report.summary,
-        generatedAt: report.generatedAt
-      }
+        generatedAt: report.generatedAt,
+      },
     });
   } catch (error) {
     console.error('Error generating tax summary:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate tax summary'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to generate tax summary' });
   }
 });
 
-// Get available years for tax reports
 router.get('/years/:creatorAddress', async (req, res) => {
   try {
     const { creatorAddress } = req.params;
-    
     if (!creatorAddress) {
-      return res.status(400).json({
-        success: false,
-        error: 'Creator address is required'
-      });
+      return res.status(400).json({ success: false, error: 'Creator address is required' });
     }
 
-    // Get the first transaction date to determine available years
     const currentYear = new Date().getFullYear();
     const years = [];
-    
-    // For now, return the last 5 years or since 2020 (whichever is more recent)
     const startYear = Math.max(2020, currentYear - 5);
-    
-    for (let year = startYear; year <= currentYear; year++) {
-      years.push(year);
-    }
-    
-    res.json({
+    for (let year = startYear; year <= currentYear; year++) years.push(year);
+
+    return res.json({
       success: true,
-      data: {
-        creatorAddress,
-        availableYears: years,
-        currentYear
-      }
+      data: { creatorAddress, availableYears: years, currentYear },
     });
   } catch (error) {
     console.error('Error fetching available years:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch available years'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to fetch available years' });
   }
 });
 
-// Get fair market value for a specific asset at a specific time
 router.get('/fmv/:asset/:timestamp', async (req, res) => {
   try {
     const { asset, timestamp } = req.params;
-    
     if (!asset || !timestamp) {
-      return res.status(400).json({
-        success: false,
-        error: 'Asset and timestamp are required'
-      });
+      return res.status(400).json({ success: false, error: 'Asset and timestamp are required' });
     }
 
-    const fmvData = await taxService.getFairMarketValue(timestamp, asset.toUpperCase());
-    
-    res.json({
-      success: true,
-      data: fmvData
-    });
+    const fmvData = await getService(req).getFairMarketValue(timestamp, asset.toUpperCase());
+    return res.json({ success: true, data: fmvData });
   } catch (error) {
     console.error('Error fetching fair market value:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch fair market value'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to fetch fair market value' });
   }
 });
 
