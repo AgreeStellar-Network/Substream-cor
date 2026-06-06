@@ -1,6 +1,6 @@
-# SubStream Protocol Sandbox Environment
+# AgreeStellar Sandbox Environment
 
-A comprehensive developer sandbox environment for testing SubStream Protocol integrations without real money transactions.
+A comprehensive developer sandbox environment for testing AgreeStellar integrations without real money transactions.
 
 ## Overview
 

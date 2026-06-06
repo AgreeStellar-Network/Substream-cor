@@ -1,4 +1,4 @@
-# SubStream Protocol WebSocket Implementation
+# AgreeStellar WebSocket Implementation
 
 This document provides an overview of the WebSocket implementation that addresses issues #151, #152, #153, and #154.
 
@@ -119,7 +119,7 @@ const socket = io('ws://localhost:3001/merchant', {
 });
 
 socket.on('connected', (data) => {
-  console.log('Connected to SubStream Protocol!');
+  console.log('Connected to AgreeStellar!');
   console.log('Merchant ID:', data.merchantId);
 });
 ```
@@ -366,7 +366,7 @@ docs/
 
 ## License
 
-This implementation follows the same license as the SubStream Protocol project.
+This implementation follows the same license as the AgreeStellar project.
 
 ## Support
 

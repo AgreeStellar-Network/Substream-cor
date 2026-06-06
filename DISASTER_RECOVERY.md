@@ -1,4 +1,4 @@
-# SubStream Protocol Disaster Recovery Runbook
+# AgreeStellar Disaster Recovery Runbook
 
 **Document Version:** 1.0  
 **Last Updated:** 2026-04-28  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This runbook provides step-by-step procedures for recovering the SubStream Protocol backend from various disaster scenarios. It covers database corruption, Kubernetes cluster failures, Redis outages, and complete regional failures. All procedures have been tested and validated for production use.
+This runbook provides step-by-step procedures for recovering the Substream-cor from various disaster scenarios. It covers database corruption, Kubernetes cluster failures, Redis outages, and complete regional failures. All procedures have been tested and validated for production use.
 
 ---
 

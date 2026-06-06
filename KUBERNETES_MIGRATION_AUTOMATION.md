@@ -1,6 +1,6 @@
 # Kubernetes Database Migration Automation
 
-This document describes the automated database schema migration system for the SubStream Protocol Backend, which ensures safe and reliable database updates during Kubernetes deployments.
+This document describes the automated database schema migration system for the Substream-cor, which ensures safe and reliable database updates during Kubernetes deployments.
 
 ## Overview
 

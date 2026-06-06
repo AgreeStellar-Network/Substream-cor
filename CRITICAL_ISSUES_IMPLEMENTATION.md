@@ -1,6 +1,6 @@
 # Critical Issues Implementation Summary
 
-This document summarizes the implementation of four critical issues for the SubStream Protocol Backend:
+This document summarizes the implementation of four critical issues for the Substream-cor:
 
 ## Issues Implemented
 

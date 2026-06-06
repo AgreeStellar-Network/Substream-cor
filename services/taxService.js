@@ -93,8 +93,8 @@ class TaxService {
       jurisdiction,
       primaryCurrency,
       reportingPlatform: {
-        name: reportingPlatform.name || 'SubStream Protocol',
-        rcaspId: reportingPlatform.rcaspId || 'SUBSTREAM-PROTOCOL',
+        name: reportingPlatform.name || 'AgreeStellar',
+        rcaspId: reportingPlatform.rcaspId || 'substream',
         country: reportingPlatform.country || jurisdiction,
       },
       generatedAt: this.now().toISOString(),

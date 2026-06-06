@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SubStream Protocol backend uses wallet-based authentication following the SIWE (Sign In With Ethereum) pattern. Users authenticate by signing a message with their wallet, which is then verified on the backend to issue a JWT token.
+The Substream-cor uses wallet-based authentication following the SIWE (Sign In With Ethereum) pattern. Users authenticate by signing a message with their wallet, which is then verified on the backend to issue a JWT token.
 
 ## Authentication Flow
 
@@ -15,7 +15,7 @@ Authenticate with the backend using a wallet signature.
 {
   "address": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45",
   "signature": "0x4355c47d63924e8a72e509b65029052eb6c50d03db4e6b1b3b9f1c2d3a4e5f6b",
-  "message": "Sign in to SubStream Protocol at 2024-03-23T16:14:00.000Z",
+  "message": "Sign in to AgreeStellar at 2024-03-23T16:14:00.000Z",
   "nonce": "random_nonce_string"
 }
 ```
@@ -64,7 +64,7 @@ All endpoints except `/` and `/auth/login` require a valid JWT token.
 ### SIWE Message Format
 The message to sign should follow this format:
 ```
-Sign in to SubStream Protocol at {timestamp}
+Sign in to AgreeStellar at {timestamp}
 
 Nonce: {nonce}
 Address: {wallet_address}
@@ -94,7 +94,7 @@ const response = await fetch('/auth/login', {
   body: JSON.stringify({
     address: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45',
     signature: '0x4355c47d63924e8a72e509b65029052eb6c50d03db4e6b1b3b9f1c2d3a4e5f6b',
-    message: 'Sign in to SubStream Protocol at 2024-03-23T16:14:00.000Z',
+    message: 'Sign in to AgreeStellar at 2024-03-23T16:14:00.000Z',
     nonce: 'random_nonce_string'
   })
 });

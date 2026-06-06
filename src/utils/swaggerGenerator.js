@@ -43,11 +43,11 @@ const routeFiles = [
 const doc = {
   info: {
     version: '1.0.0',
-    title: 'SubStream Protocol API',
+    title: 'AgreeStellar API',
     description: `
-# SubStream Protocol - Decentralized Streaming Platform API
+# AgreeStellar - Decentralized Streaming Platform API
 
-Complete API documentation for the SubStream Protocol, a decentralized streaming platform built on Stellar/Soroban.
+Complete API documentation for the AgreeStellar, a decentralized streaming platform built on Stellar/Soroban.
 
 ## Features
 

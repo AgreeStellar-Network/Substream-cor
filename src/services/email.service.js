@@ -108,13 +108,13 @@ class EmailService {
 <body>
     <div class="header">
         <h1>🎉 You're Invited!</h1>
-        <p>Join ${organization.name} on SubStream Protocol</p>
+        <p>Join ${organization.name} on AgreeStellar</p>
     </div>
     
     <div class="content">
         <p>Hello,</p>
         
-        <p>${inviter.name || inviter.email} has invited you to join <strong>${organization.name}</strong> on the SubStream Protocol platform.</p>
+        <p>${inviter.name || inviter.email} has invited you to join <strong>${organization.name}</strong> on the AgreeStellar platform.</p>
         
         <div class="invitation-details">
             <h3>Invitation Details:</h3>
@@ -134,9 +134,9 @@ class EmailService {
     </div>
     
     <div class="footer">
-        <p>This email was sent by SubStream Protocol</p>
+        <p>This email was sent by AgreeStellar</p>
         <p>If you have questions, contact us at support@stellar-privacy.com</p>
-        <p>&copy; 2024 SubStream Protocol. All rights reserved.</p>
+        <p>&copy; 2024 AgreeStellar. All rights reserved.</p>
     </div>
 </body>
 </html>
@@ -246,7 +246,7 @@ class EmailService {
             <p><strong>Status:</strong> Active</p>
         </div>
         
-        <p>You can now log in to your account and start using the SubStream Protocol platform.</p>
+        <p>You can now log in to your account and start using the AgreeStellar platform.</p>
         
         <a href="${this.frontendUrl}/login" class="button">Log In to Your Account</a>
         
@@ -254,9 +254,9 @@ class EmailService {
     </div>
     
     <div class="footer">
-        <p>This email was sent by SubStream Protocol</p>
+        <p>This email was sent by AgreeStellar</p>
         <p>If you have questions, contact us at support@stellar-privacy.com</p>
-        <p>&copy; 2024 SubStream Protocol. All rights reserved.</p>
+        <p>&copy; 2024 AgreeStellar. All rights reserved.</p>
     </div>
 </body>
 </html>
@@ -366,9 +366,9 @@ class EmailService {
     </div>
     
     <div class="footer">
-        <p>This email was sent by SubStream Protocol</p>
+        <p>This email was sent by AgreeStellar</p>
         <p>If you have questions, contact us at support@stellar-privacy.com</p>
-        <p>&copy; 2024 SubStream Protocol. All rights reserved.</p>
+        <p>&copy; 2024 AgreeStellar. All rights reserved.</p>
     </div>
 </body>
 </html>
@@ -408,7 +408,7 @@ class EmailService {
   }
 
   generatePasswordResetEmailContent(email, resetUrl) {
-    const subject = 'Reset your SubStream Protocol password';
+    const subject = 'Reset your AgreeStellar password';
     
     const html = `
 <!DOCTYPE html>
@@ -472,13 +472,13 @@ class EmailService {
 <body>
     <div class="header">
         <h1>🔐 Password Reset</h1>
-        <p>Reset your SubStream Protocol password</p>
+        <p>Reset your AgreeStellar password</p>
     </div>
     
     <div class="content">
         <p>Hello,</p>
         
-        <p>We received a request to reset the password for your SubStream Protocol account associated with this email address.</p>
+        <p>We received a request to reset the password for your AgreeStellar account associated with this email address.</p>
         
         <div class="alert">
             <strong>This password reset link will expire in 1 hour.</strong>
@@ -495,9 +495,9 @@ class EmailService {
     </div>
     
     <div class="footer">
-        <p>This email was sent by SubStream Protocol</p>
+        <p>This email was sent by AgreeStellar</p>
         <p>If you have questions, contact us at support@stellar-privacy.com</p>
-        <p>&copy; 2024 SubStream Protocol. All rights reserved.</p>
+        <p>&copy; 2024 AgreeStellar. All rights reserved.</p>
     </div>
 </body>
 </html>

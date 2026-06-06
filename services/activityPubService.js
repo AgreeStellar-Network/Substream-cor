@@ -36,7 +36,7 @@ class ActivityPubService {
       type: 'Person',
       preferredUsername: `creator_${creator.address.slice(0, 8)}`,
       name: creator.name || `Creator ${creator.address.slice(0, 8)}`,
-      summary: creator.bio || `Content creator on SubStream Protocol - Web3 video platform`,
+      summary: creator.bio || `Content creator on AgreeStellar - Web3 video platform`,
       inbox: `${actorId}/inbox`,
       outbox: `${actorId}/outbox`,
       followers: `${actorId}/followers`,
@@ -104,7 +104,7 @@ class ActivityPubService {
     // Generate teaser text (first 200 characters of content)
     const teaser = content.description 
       ? content.description.slice(0, 200) + (content.description.length > 200 ? '...' : '')
-      : `New content available on SubStream Protocol`;
+      : `New content available on AgreeStellar`;
 
     const announcement = {
       '@context': 'https://www.w3.org/ns/activitystreams',
@@ -145,7 +145,7 @@ class ActivityPubService {
     
     return `<p>${teaser}</p>
 <p><a href="${contentUrl}" target="_blank" rel="nofollow noopener noreferrer">Watch full content on SubStream 🔗</a></p>
-<p><small>Posted by <a href="${creatorUrl}" target="_blank" rel="nofollow noopener noreferrer">@${creator.name || creator.address.slice(0, 8)}</a> on SubStream Protocol</small></p>`;
+<p><small>Posted by <a href="${creatorUrl}" target="_blank" rel="nofollow noopener noreferrer">@${creator.name || creator.address.slice(0, 8)}</a> on AgreeStellar</small></p>`;
   }
 
   /**

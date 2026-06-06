@@ -74,7 +74,7 @@ NOTIFICATION_RATE_LIMIT_MAX=100
 NOTIFICATION_RATE_LIMIT_DURATION=60000
 
 # Default Email Configuration
-DEFAULT_FROM_EMAIL=noreply@substream-protocol.com
+DEFAULT_FROM_EMAIL=noreply@substream.app
 ```
 
 ### Service Configuration
@@ -100,8 +100,8 @@ const notificationService = new NotificationService({
   rateLimitMax: 100,
   rateLimitDuration: 60000,
   globalTemplateMappings: {
-    companyName: 'SubStream Protocol',
-    website: 'https://substream-protocol.com'
+    companyName: 'AgreeStellar',
+    website: 'https://substream.app'
   }
 });
 ```
@@ -181,7 +181,7 @@ Authorization: Bearer <JWT_TOKEN>
   "subject": "Bulk Announcement",
   "templateId": "announcement-template",
   "templateData": {
-    "company": "SubStream Protocol"
+    "company": "AgreeStellar"
   }
 }
 ```
@@ -403,8 +403,8 @@ The service includes predefined templates for common use cases:
 {
   "templateId": "welcome",
   "defaultVariables": {
-    "appName": "SubStream Protocol",
-    "supportEmail": "support@substream-protocol.com",
+    "appName": "AgreeStellar",
+    "supportEmail": "support@substream.app",
     "currentYear": 2024
   }
 }
@@ -415,9 +415,9 @@ The service includes predefined templates for common use cases:
 {
   "templateId": "payment_failure",
   "defaultVariables": {
-    "appName": "SubStream Protocol",
-    "supportEmail": "support@substream-protocol.com",
-    "billingUrl": "https://app.substream-protocol.com/billing"
+    "appName": "AgreeStellar",
+    "supportEmail": "support@substream.app",
+    "billingUrl": "https://app.substream.app/billing"
   }
 }
 ```
@@ -427,9 +427,9 @@ The service includes predefined templates for common use cases:
 {
   "templateId": "low_balance_warning",
   "defaultVariables": {
-    "appName": "SubStream Protocol",
-    "supportEmail": "support@substream-protocol.com",
-    "addFundsUrl": "https://app.substream-protocol.com/wallet/add-funds"
+    "appName": "AgreeStellar",
+    "supportEmail": "support@substream.app",
+    "addFundsUrl": "https://app.substream.app/wallet/add-funds"
   }
 }
 ```
@@ -439,8 +439,8 @@ The service includes predefined templates for common use cases:
 {
   "templateId": "pre_billing_warning",
   "defaultVariables": {
-    "appName": "SubStream Protocol",
-    "supportEmail": "support@substream-protocol.com",
+    "appName": "AgreeStellar",
+    "supportEmail": "support@substream.app",
     "warningDays": 3
   }
 }

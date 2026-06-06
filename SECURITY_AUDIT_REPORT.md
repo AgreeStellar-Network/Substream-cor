@@ -1,4 +1,4 @@
-# Security Audit Report - SubStream Protocol Backend
+# Security Audit Report - Substream-cor
 
 **Date:** April 28, 2026  
 **Auditor:** Security Team  

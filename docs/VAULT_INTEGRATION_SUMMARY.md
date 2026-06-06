@@ -1,6 +1,6 @@
 # Vault Integration Implementation Summary
 
-This document provides a comprehensive summary of the HashiCorp Vault integration implemented for the SubStream Protocol Backend to remove all hardcoded secrets from the deployment pipeline.
+This document provides a comprehensive summary of the HashiCorp Vault integration implemented for the Substream-cor to remove all hardcoded secrets from the deployment pipeline.
 
 ## Overview
 

@@ -2,7 +2,7 @@
 
 ## Summary
 
-This PR implements comprehensive Horizontal Pod Autoscaling (HPA) for the SubStream Protocol Backend to ensure the system can dynamically react to massive traffic spikes without manual DevOps intervention. The implementation addresses all requirements from issue #167.
+This PR implements comprehensive Horizontal Pod Autoscaling (HPA) for the Substream-cor to ensure the system can dynamically react to massive traffic spikes without manual DevOps intervention. The implementation addresses all requirements from issue #167.
 
 ## Changes Made
 

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document defines the comprehensive multi-region Disaster Recovery (DR) architecture for the SubStream Protocol Backend, ensuring the system can survive the complete destruction of a primary AWS/GCP region. The architecture is designed to meet enterprise merchant requirements for 99.999% SLA guarantees.
+This document defines the comprehensive multi-region Disaster Recovery (DR) architecture for the Substream-cor, ensuring the system can survive the complete destruction of a primary AWS/GCP region. The architecture is designed to meet enterprise merchant requirements for 99.999% SLA guarantees.
 
 ## Architecture Overview
 

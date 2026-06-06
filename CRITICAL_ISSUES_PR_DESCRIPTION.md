@@ -2,7 +2,7 @@
 
 ## 🚨 Critical Issues Implementation
 
-This PR implements four critical production-ready features that address enterprise-grade requirements for the SubStream Protocol Backend:
+This PR implements four critical production-ready features that address enterprise-grade requirements for the Substream-cor:
 
 - **#155** Live Substream Analytics Feed (MRR/Churn Ticker)
 - **#158** Row-Level Security (RLS) for Postgres Multi-Tenancy  

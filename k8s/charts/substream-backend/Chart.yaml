@@ -1,6 +1,6 @@
 apiVersion: v2
 name: substream-backend
-description: A Helm chart for SubStream Protocol Backend
+description: A Helm chart for Substream-cor
 type: application
 version: 1.0.0
 appVersion: "1.0.0"

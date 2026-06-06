@@ -1,6 +1,6 @@
 # Security and Architecture Implementations
 
-This document describes the four critical security and architecture improvements implemented for the SubStream Protocol Backend.
+This document describes the four critical security and architecture improvements implemented for the Substream-cor.
 
 ## 1. Cross-Tenant Data Leakage Prevention Middleware (Issue #162)
 
@@ -330,4 +330,4 @@ redis-cli KEYS "cluster_stats:*"
 
 ---
 
-This implementation provides a robust, secure, and scalable foundation for the SubStream Protocol Backend, addressing all critical security and architecture requirements while maintaining high performance and reliability.
+This implementation provides a robust, secure, and scalable foundation for the Substream-cor, addressing all critical security and architecture requirements while maintaining high performance and reliability.

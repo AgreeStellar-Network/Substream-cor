@@ -1,6 +1,6 @@
 # Feature Implementation Documentation
 
-This document describes the implementation of four new features for the SubStream Protocol Backend:
+This document describes the implementation of four new features for the Substream-cor:
 
 ## Table of Contents
 1. [RSS/Atom Feed Generation](#rssatom-feed-generation)

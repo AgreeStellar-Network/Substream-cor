@@ -1,6 +1,6 @@
 /**
  * @module routes/content
- * @description Tier-gated content endpoints for the SubStream Protocol.
+ * @description Tier-gated content endpoints for the AgreeStellar.
  *
  * `attachTier` runs globally in index.js, so `req.user.tier` is always
  * populated before any handler here runs.

@@ -1,8 +1,8 @@
-# SubStream Protocol WebSocket API Documentation
+# AgreeStellar WebSocket API Documentation
 
 ## Overview
 
-The SubStream Protocol WebSocket API provides real-time event streaming for merchant dashboards. This API enables instant notifications for payment events, trial conversions, and payment failures.
+The AgreeStellar WebSocket API provides real-time event streaming for merchant dashboards. This API enables instant notifications for payment events, trial conversions, and payment failures.
 
 ## Authentication
 
@@ -189,7 +189,7 @@ socket.on('ping', (data) => {
 
 ```javascript
 socket.on('connected', (data) => {
-  console.log('Connected to SubStream Protocol');
+  console.log('Connected to AgreeStellar');
   console.log('Merchant ID:', data.merchantId);
 });
 ```

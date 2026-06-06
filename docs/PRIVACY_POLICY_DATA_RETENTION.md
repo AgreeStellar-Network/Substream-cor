@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines SubStream Protocol's data retention policies and procedures for handling user data deletion requests in compliance with GDPR (General Data Protection Regulation), CCPA (California Consumer Privacy Act), and other global privacy regulations.
+This document outlines AgreeStellar's data retention policies and procedures for handling user data deletion requests in compliance with GDPR (General Data Protection Regulation), CCPA (California Consumer Privacy Act), and other global privacy regulations.
 
 ## Data Retention Timeline
 

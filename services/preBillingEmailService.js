@@ -4,9 +4,9 @@
  */
 class PreBillingEmailService {
   constructor(config = {}) {
-    this.fromEmail = config.fromEmail || process.env.FROM_EMAIL || 'noreply@substream-protocol.com';
-    this.baseUrl = config.baseUrl || process.env.FRONTEND_URL || 'https://app.substream-protocol.com';
-    this.supportEmail = config.supportEmail || process.env.SUPPORT_EMAIL || 'support@substream-protocol.com';
+    this.fromEmail = config.fromEmail || process.env.FROM_EMAIL || 'noreply@substream.app';
+    this.baseUrl = config.baseUrl || process.env.FRONTEND_URL || 'https://app.substream.app';
+    this.supportEmail = config.supportEmail || process.env.SUPPORT_EMAIL || 'support@substream.app';
   }
 
   /**
@@ -183,7 +183,7 @@ The SubStream Team
 </head>
 <body>
     <div class="header">
-        <h1>SubStream Protocol</h1>
+        <h1>AgreeStellar</h1>
         <p>Payment Warning</p>
     </div>
     
@@ -235,7 +235,7 @@ The SubStream Team
     </div>
     
     <div class="footer">
-        <p>&copy; 2024 SubStream Protocol. All rights reserved.</p>
+        <p>&copy; 2024 AgreeStellar. All rights reserved.</p>
         <p>This is an automated message. Please do not reply to this email.</p>
     </div>
 </body>

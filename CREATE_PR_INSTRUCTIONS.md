@@ -21,7 +21,7 @@ If you encounter permission issues, you may need to:
 Once the branch is pushed, create a pull request:
 
 ### Option A: Via GitHub Web UI
-1. Go to: https://github.com/SubStream-Protocol/SubStream-Protocol-Backend
+1. Go to: https://github.com/AgreeStellar-Network/Substream-cor
 2. Click on "Pull Requests" tab
 3. Click "New pull request"
 4. Select your branch: `feature/tenant-flags-data-export-docker-ws-security`

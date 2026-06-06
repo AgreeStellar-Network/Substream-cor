@@ -1,6 +1,6 @@
 # Redis Caching Layer for Global Stats
 
-This document describes the implementation of a Redis caching layer for global statistics in the SubStream Protocol Backend.
+This document describes the implementation of a Redis caching layer for global statistics in the Substream-cor.
 
 ## Overview
 
@@ -268,7 +268,7 @@ curl http://localhost:3000/api/global-stats/cache-status
 
 ## Conclusion
 
-The Redis caching layer significantly improves the performance and scalability of the SubStream Protocol Backend by:
+The Redis caching layer significantly improves the performance and scalability of the Substream-cor by:
 
 - **Reducing database load** during high traffic periods
 - **Improving response times** for global statistics

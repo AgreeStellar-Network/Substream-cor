@@ -514,4 +514,4 @@ await slackService.testConnection();
 
 ## License
 
-This DLQ system is part of the SubStream Protocol backend and follows the same licensing terms as the main project.
+This DLQ system is part of the Substream-cor and follows the same licensing terms as the main project.

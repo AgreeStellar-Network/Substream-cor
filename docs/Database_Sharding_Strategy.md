@@ -1,15 +1,15 @@
 # Database Sharding Strategy RFC
 
-## RFC: Database Horizontal Sharding Strategy for SubStream Protocol
+## RFC: Database Horizontal Sharding Strategy for AgreeStellar
 
-**Author:** SubStream Protocol Team  
+**Author:** AgreeStellar Team  
 **Status:** Draft  
 **Created:** March 2026  
 **Target:** Multi-Master Database Architecture  
 
 ## Executive Summary
 
-This RFC outlines a comprehensive horizontal sharding strategy for the SubStream Protocol backend to support long-term scalability. After analyzing the current SQLite-based architecture and projected growth patterns, we recommend **creator_id-based sharding** as the primary strategy, with geo-region as a secondary consideration for future optimization.
+This RFC outlines a comprehensive horizontal sharding strategy for the Substream-cor to support long-term scalability. After analyzing the current SQLite-based architecture and projected growth patterns, we recommend **creator_id-based sharding** as the primary strategy, with geo-region as a secondary consideration for future optimization.
 
 ## Current Architecture Analysis
 
@@ -361,7 +361,7 @@ ALTER TABLE subscriptions
 
 ## Conclusion
 
-The recommended creator_id-based sharding strategy provides the best balance of performance, scalability, and implementation complexity for the SubStream Protocol. The phased approach allows for gradual migration while maintaining system availability and data integrity.
+The recommended creator_id-based sharding strategy provides the best balance of performance, scalability, and implementation complexity for the AgreeStellar. The phased approach allows for gradual migration while maintaining system availability and data integrity.
 
 The hybrid approach, combining creator-based sharding with geographic optimization, positions the platform for both horizontal scaling and global performance requirements.
 

@@ -1,13 +1,13 @@
 # Distributed Tracing Implementation Summary
 
-**Project:** SubStream Protocol Backend  
+**Project:** Substream-cor  
 **Feature:** Distributed Tracing with OpenTelemetry  
 **Status:** ✅ Complete  
 **Date:** April 29, 2026
 
 ## Executive Summary
 
-A comprehensive distributed tracing system has been implemented using OpenTelemetry to enable cross-service transaction debugging, performance monitoring, and troubleshooting across the SubStream Protocol Backend infrastructure. This implementation provides:
+A comprehensive distributed tracing system has been implemented using OpenTelemetry to enable cross-service transaction debugging, performance monitoring, and troubleshooting across the Substream-cor infrastructure. This implementation provides:
 
 - **End-to-end request tracing** across all services and external integrations
 - **W3C Trace Context** support for standards-based trace propagation
@@ -250,7 +250,7 @@ RabbitMQ Publish/Consume → Traced Queue Span
 ```bash
 # Core Configuration
 OTEL_DISABLED=false                              # Enable/disable tracing
-OTEL_SERVICE_NAME=substream-protocol-backend    # Service identification
+OTEL_SERVICE_NAME=substream-cor    # Service identification
 OTEL_SERVICE_VERSION=1.0.0                      # Service version
 
 # OTLP Exporter
@@ -445,7 +445,7 @@ Response:
   "status": "ok",
   "tracing_enabled": true,
   "active_span": false,
-  "service_name": "substream-protocol-backend",
+  "service_name": "substream-cor",
   "environment": "production"
 }
 ```

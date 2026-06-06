@@ -9,7 +9,7 @@
  */
 function buildAuditLogPdf(input) {
   const lines = [
-    'SubStream Protocol Creator Audit Log',
+    'AgreeStellar Creator Audit Log',
     `Creator: ${input.creatorId}`,
     `Exported At: ${input.exportedAt}`,
     '',

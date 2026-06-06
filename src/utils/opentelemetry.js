@@ -44,7 +44,7 @@ function initTracing(options = {}) {
 
   diag.setLogger(new DiagConsoleLogger(), getDiagLevel());
 
-  const serviceName = process.env.OTEL_SERVICE_NAME || options.serviceName || 'substream-protocol-backend';
+  const serviceName = process.env.OTEL_SERVICE_NAME || options.serviceName || 'substream-cor';
   const serviceVersion = process.env.OTEL_SERVICE_VERSION || options.serviceVersion || '1.0.0';
   const deploymentEnvironment = process.env.NODE_ENV || 'development';
 

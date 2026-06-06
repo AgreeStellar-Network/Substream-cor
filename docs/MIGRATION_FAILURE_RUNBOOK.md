@@ -1,6 +1,6 @@
 # Database Migration Failure Runbook
 
-This runbook provides step-by-step procedures for handling failed database migrations and performing safe rollbacks in the SubStream Protocol Backend.
+This runbook provides step-by-step procedures for handling failed database migrations and performing safe rollbacks in the Substream-cor.
 
 ## Table of Contents
 

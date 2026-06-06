@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook provides comprehensive guidance for managing and troubleshooting the Horizontal Pod Autoscaler (HPA) configuration for the SubStream Protocol Backend. The HPA ensures the backend can dynamically react to massive traffic spikes without manual DevOps intervention.
+This runbook provides comprehensive guidance for managing and troubleshooting the Horizontal Pod Autoscaler (HPA) configuration for the Substream-cor. The HPA ensures the backend can dynamically react to massive traffic spikes without manual DevOps intervention.
 
 ## Architecture
 

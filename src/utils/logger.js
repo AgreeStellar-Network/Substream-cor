@@ -25,7 +25,7 @@ const logger = winston.createLogger({
     json()
   ),
   defaultMeta: {
-    service: 'substream-protocol',
+    service: 'substream-cor',
     environment: process.env.NODE_ENV || 'development',
   },
   transports: [

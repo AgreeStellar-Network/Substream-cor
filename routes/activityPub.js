@@ -296,9 +296,9 @@ router.get('/nodeinfo/2.1', (req, res) => {
   res.json({
     version: '2.1',
     software: {
-      name: 'substream-protocol',
+      name: 'substream-cor',
       version: '1.0.0',
-      repository: 'https://github.com/djangh904/SubStream-Protocol-Backend'
+      repository: 'https://github.com/AgreeStellar-Network/Substream-cor'
     },
     protocols: ['activitypub'],
     services: {
@@ -316,7 +316,7 @@ router.get('/nodeinfo/2.1', (req, res) => {
       localComments: 0
     },
     metadata: {
-      nodeName: 'SubStream Protocol',
+      nodeName: 'AgreeStellar',
       nodeDescription: 'Web3 video streaming platform with ActivityPub federation',
       maintainer: {
         name: 'SubStream Team',

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Stripe-to-Substream Migration Data Importer enables Web2 SaaS merchants to seamlessly migrate their existing customer base from Stripe to the SubStream Protocol Web3 ecosystem. This feature dramatically lowers the barrier to entry for enterprise merchants wanting to transition from credit card payments to cryptocurrency subscriptions.
+The Stripe-to-Substream Migration Data Importer enables Web2 SaaS merchants to seamlessly migrate their existing customer base from Stripe to the AgreeStellar Web3 ecosystem. This feature dramatically lowers the barrier to entry for enterprise merchants wanting to transition from credit card payments to cryptocurrency subscriptions.
 
 ## Architecture
 
@@ -194,7 +194,7 @@ Migration links are cryptographically signed URLs that:
 
 ### Link Structure
 ```
-https://app.substream-protocol.com/migrate?record=<UUID>&email=<EMAIL>&ts=<TIMESTAMP>&sig=<SIGNATURE>
+https://app.substream.app/migrate?record=<UUID>&email=<EMAIL>&ts=<TIMESTAMP>&sig=<SIGNATURE>
 ```
 
 ### User Flow

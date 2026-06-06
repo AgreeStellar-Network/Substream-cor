@@ -428,8 +428,8 @@ class NotificationService {
     // Welcome email template
     this.addTemplateMapping('welcome', {
       defaultVariables: {
-        appName: 'SubStream Protocol',
-        supportEmail: 'support@substream-protocol.com',
+        appName: 'AgreeStellar',
+        supportEmail: 'support@substream.app',
         currentYear: new Date().getFullYear()
       }
     });
@@ -437,35 +437,35 @@ class NotificationService {
     // Payment failure template
     this.addTemplateMapping('payment_failure', {
       defaultVariables: {
-        appName: 'SubStream Protocol',
-        supportEmail: 'support@substream-protocol.com',
-        billingUrl: 'https://app.substream-protocol.com/billing'
+        appName: 'AgreeStellar',
+        supportEmail: 'support@substream.app',
+        billingUrl: 'https://app.substream.app/billing'
       }
     });
 
     // Low balance warning template
     this.addTemplateMapping('low_balance_warning', {
       defaultVariables: {
-        appName: 'SubStream Protocol',
-        supportEmail: 'support@substream-protocol.com',
-        addFundsUrl: 'https://app.substream-protocol.com/wallet/add-funds'
+        appName: 'AgreeStellar',
+        supportEmail: 'support@substream.app',
+        addFundsUrl: 'https://app.substream.app/wallet/add-funds'
       }
     });
 
     // Subscription expired template
     this.addTemplateMapping('subscription_expired', {
       defaultVariables: {
-        appName: 'SubStream Protocol',
-        supportEmail: 'support@substream-protocol.com',
-        renewUrl: 'https://app.substream-protocol.com/subscriptions'
+        appName: 'AgreeStellar',
+        supportEmail: 'support@substream.app',
+        renewUrl: 'https://app.substream.app/subscriptions'
       }
     });
 
     // Pre-billing health check template
     this.addTemplateMapping('pre_billing_warning', {
       defaultVariables: {
-        appName: 'SubStream Protocol',
-        supportEmail: 'support@substream-protocol.com',
+        appName: 'AgreeStellar',
+        supportEmail: 'support@substream.app',
         warningDays: 3
       }
     });

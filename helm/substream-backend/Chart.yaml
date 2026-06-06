@@ -1,6 +1,6 @@
 apiVersion: v2
 name: substream-backend
-description: A Helm chart for SubStream Protocol Backend with HPA support
+description: A Helm chart for Substream-cor with HPA support
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
@@ -10,9 +10,9 @@ keywords:
   - kubernetes
   - hpa
   - autoscaling
-home: https://github.com/SubStream-Protocol/SubStream-Protocol-Backend
+home: https://github.com/AgreeStellar-Network/Substream-cor
 sources:
-  - https://github.com/SubStream-Protocol/SubStream-Protocol-Backend
+  - https://github.com/AgreeStellar-Network/Substream-cor
 maintainers:
   - name: SubStream Team
     email: dev@substream.protocol

@@ -336,7 +336,7 @@ class StripeMigrationService {
       .update(`${recordId}:${email}:${timestamp}`)
       .digest('hex');
 
-    const baseUrl = process.env.FRONTEND_URL || 'https://app.substream-protocol.com';
+    const baseUrl = process.env.FRONTEND_URL || 'https://app.substream.app';
     return `${baseUrl}/migrate?record=${recordId}&email=${encodeURIComponent(email)}&ts=${timestamp}&sig=${signature}`;
   }
 

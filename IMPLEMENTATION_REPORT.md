@@ -1,6 +1,6 @@
 # Distributed Tracing Implementation Report
 
-**Project:** SubStream Protocol Backend  
+**Project:** Substream-cor  
 **Feature:** Distributed Tracing with OpenTelemetry  
 **Implementation Date:** April 29, 2026  
 **Status:** ✅ **COMPLETE & PRODUCTION READY**
@@ -9,7 +9,7 @@
 
 ## 📊 Implementation Summary
 
-A comprehensive distributed tracing system has been successfully implemented using OpenTelemetry, enabling cross-service transaction debugging, performance monitoring, and comprehensive observability across the entire SubStream Protocol Backend infrastructure.
+A comprehensive distributed tracing system has been successfully implemented using OpenTelemetry, enabling cross-service transaction debugging, performance monitoring, and comprehensive observability across the entire Substream-cor infrastructure.
 
 ### 🎯 Objectives Achieved
 
@@ -575,7 +575,7 @@ Ready for service-by-service integration:
 
 ## 🎯 Conclusion
 
-A production-ready distributed tracing system has been successfully implemented for the SubStream Protocol Backend using OpenTelemetry. The implementation provides:
+A production-ready distributed tracing system has been successfully implemented for the Substream-cor using OpenTelemetry. The implementation provides:
 
 - **Complete tracing coverage** across all service layers
 - **Standards-compliant** W3C Trace Context propagation

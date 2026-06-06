@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers the comprehensive distributed tracing implementation using OpenTelemetry for the SubStream Protocol Backend. Distributed tracing enables cross-service transaction debugging, performance monitoring, and troubleshooting across the entire system.
+This guide covers the comprehensive distributed tracing implementation using OpenTelemetry for the Substream-cor. Distributed tracing enables cross-service transaction debugging, performance monitoring, and troubleshooting across the entire system.
 
 ## Table of Contents
 
@@ -84,7 +84,7 @@ const { initTracing, getTracer, withSpan } = require('./src/utils/opentelemetry'
 
 // Initialize in main.js
 initTracing({
-  serviceName: 'substream-protocol-backend',
+  serviceName: 'substream-cor',
   serviceVersion: '1.0.0'
 });
 ```
@@ -144,7 +144,7 @@ Adds tracing to service classes and methods:
 ```bash
 # OpenTelemetry Core
 OTEL_DISABLED=false                              # Disable all tracing
-OTEL_SERVICE_NAME=substream-protocol-backend    # Service name
+OTEL_SERVICE_NAME=substream-cor    # Service name
 OTEL_SERVICE_VERSION=1.0.0                      # Service version
 OTEL_DIAG_LEVEL=error                           # Log level (debug, info, warn, error)
 
@@ -182,7 +182,7 @@ services:
       - "3000:3000"
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:14268/api/traces
-      OTEL_SERVICE_NAME: substream-protocol-backend
+      OTEL_SERVICE_NAME: substream-cor
       NODE_ENV: production
     depends_on:
       - jaeger
@@ -200,7 +200,7 @@ const { httpTracingMiddleware, traceAwareRequestLogger } = require('./src/middle
 
 // Initialize tracing FIRST
 initTracing({
-  serviceName: 'substream-protocol-backend',
+  serviceName: 'substream-cor',
   serviceVersion: '1.0.0'
 });
 

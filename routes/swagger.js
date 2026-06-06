@@ -29,7 +29,7 @@ function loadSpec() {
     return {
       openapi: '3.0.0',
       info: {
-        title: 'SubStream Protocol API',
+        title: 'AgreeStellar API',
         version: '1.0.0',
         description: 'API documentation is being generated. Please refresh in a few seconds.',
       },

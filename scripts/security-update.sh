@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Security Update Script for SubStream Protocol Backend
+# Security Update Script for Substream-cor
 # This script automates the security dependency update process
 
 echo "🔒 Starting Security Update Process..."

@@ -38,7 +38,7 @@ describe("SEP-10 Compliance Tests", () => {
       expect(transaction.operations[0].source).toBe(testPublicKey);
       
       // Verify operation name matches domain auth pattern
-      const expectedName = `${process.env.DOMAIN || "substream-protocol.com"} auth`;
+      const expectedName = `${process.env.DOMAIN || "substream.app"} auth`;
       expect(transaction.operations[0].name).toBe(expectedName);
 
       // Verify timebounds are present and reasonable
@@ -173,7 +173,7 @@ describe("SEP-10 Compliance Tests", () => {
       expect(transaction.operations[0].source).toBe(testPublicKey);
       
       // 4. Operation name must be <domain> auth
-      const expectedName = `${process.env.DOMAIN || "substream-protocol.com"} auth`;
+      const expectedName = `${process.env.DOMAIN || "substream.app"} auth`;
       expect(transaction.operations[0].name).toBe(expectedName);
       
       // 5. Operation value must be a nonce

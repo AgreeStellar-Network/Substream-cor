@@ -1,8 +1,8 @@
-# ActivityPub Bridge for SubStream Protocol
+# ActivityPub Bridge for AgreeStellar
 
 ## Overview
 
-The ActivityPub bridge enables SubStream Protocol to interoperate with the Fediverse (Mastodon, Lemmy, PeerTube, etc.), ensuring SubStream is not a content silo. When creators post new content, announcements are automatically federated to their followers across the decentralized social web.
+The ActivityPub bridge enables AgreeStellar to interoperate with the Fediverse (Mastodon, Lemmy, PeerTube, etc.), ensuring SubStream is not a content silo. When creators post new content, announcements are automatically federated to their followers across the decentralized social web.
 
 ## Features
 
@@ -106,9 +106,9 @@ Content announcements include:
 
 Example announcement format:
 ```html
-<p>New video content available on SubStream Protocol...</p>
+<p>New video content available on AgreeStellar...</p>
 <p><a href="https://substream.protocol/content/123" target="_blank">Watch full content on SubStream 🔗</a></p>
-<p><small>Posted by <a href="https://substream.protocol/creator/GABC..." target="_blank">@creator_name</a> on SubStream Protocol</small></p>
+<p><small>Posted by <a href="https://substream.protocol/creator/GABC..." target="_blank">@creator_name</a> on AgreeStellar</small></p>
 ```
 
 ## Fediverse Compatibility

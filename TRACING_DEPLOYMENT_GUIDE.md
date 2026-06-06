@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-This guide covers deploying the SubStream Protocol Backend with distributed tracing enabled.
+This guide covers deploying the Substream-cor with distributed tracing enabled.
 
 ## Table of Contents
 
@@ -40,7 +40,7 @@ cp .env.tracing.example .env
 # Update for local development
 cat >> .env << EOF
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_SERVICE_NAME=substream-protocol-backend
+OTEL_SERVICE_NAME=substream-cor
 OTEL_DIAG_LEVEL=debug
 OTEL_CONSOLE_EXPORTER=false
 NODE_ENV=development
@@ -67,7 +67,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/content
 
 # View traces in Jaeger UI
 # Visit http://localhost:16686
-# Select service: substream-protocol-backend
+# Select service: substream-cor
 # Click "Find Traces"
 ```
 
@@ -163,7 +163,7 @@ services:
       REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
-      OTEL_SERVICE_NAME: substream-protocol-backend
+      OTEL_SERVICE_NAME: substream-cor
       OTEL_DIAG_LEVEL: info
       OTEL_SAMPLING_RATE: 0.1
     depends_on:
@@ -318,7 +318,7 @@ spec:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://jaeger.monitoring.svc.cluster.local:4317"
         - name: OTEL_SERVICE_NAME
-          value: "substream-protocol-backend"
+          value: "substream-cor"
         - name: OTEL_SERVICE_VERSION
           valueFrom:
             fieldRef:
@@ -400,7 +400,7 @@ dotenv.config();
 
 // Initialize tracing as first operation
 initTracing({
-  serviceName: 'substream-protocol-backend',
+  serviceName: 'substream-cor',
   serviceVersion: '1.0.0'
 });
 
@@ -588,7 +588,7 @@ Response:
   "status": "ok",
   "tracing_enabled": true,
   "active_span": false,
-  "service_name": "substream-protocol-backend",
+  "service_name": "substream-cor",
   "environment": "production"
 }
 ```
@@ -606,7 +606,7 @@ curl http://localhost:3000/metrics | grep otel
 curl http://localhost:16686/api/services
 
 # Get traces for a service
-curl http://localhost:16686/api/traces?service=substream-protocol-backend
+curl http://localhost:16686/api/traces?service=substream-cor
 
 # Get specific trace
 curl http://localhost:16686/api/traces/{traceId}

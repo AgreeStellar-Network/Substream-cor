@@ -70,12 +70,12 @@ class FeedService {
         { _attr: { version: '2.0', 'xmlns:atom': 'http://www.w3.org/2005/Atom' } },
         {
           channel: [
-            { title: `SubStream Protocol Feed - ${userAddress}` },
-            { description: `Your personalized ${contentType} feed from SubStream Protocol` },
+            { title: `AgreeStellar Feed - ${userAddress}` },
+            { description: `Your personalized ${contentType} feed from AgreeStellar` },
             { link: feedUrl },
             { 'atom:link': { _attr: { href: feedUrl, rel: 'self', type: 'application/rss+xml' } } },
             { lastBuildDate: new Date().toUTCString() },
-            { generator: 'SubStream Protocol Feed Generator' },
+            { generator: 'AgreeStellar Feed Generator' },
             ...feedItems.map(item => ({
               item: [
                 { title: item.title },
@@ -112,12 +112,12 @@ class FeedService {
     const atomXml = xml({
       feed: [
         { _attr: { xmlns: 'http://www.w3.org/2005/Atom' } },
-        { title: `SubStream Protocol Feed - ${userAddress}` },
-        { subtitle: `Your personalized ${contentType} feed from SubStream Protocol` },
+        { title: `AgreeStellar Feed - ${userAddress}` },
+        { subtitle: `Your personalized ${contentType} feed from AgreeStellar` },
         { link: { _attr: { href: feedUrl, rel: 'self', type: 'application/atom+xml' } } },
         { updated: new Date().toISOString() },
         { id: `urn:uuid:${userAddress}` },
-        { generator: 'SubStream Protocol Feed Generator' },
+        { generator: 'AgreeStellar Feed Generator' },
         ...feedEntries.map(entry => ({
           entry: [
             { title: entry.title },
@@ -145,7 +145,7 @@ class FeedService {
       {
         id: 'content_001',
         title: 'Episode 1: Introduction to SubStream',
-        description: 'Learn about the SubStream Protocol and how it revolutionizes content creation',
+        description: 'Learn about the AgreeStellar and how it revolutionizes content creation',
         createdAt: '2024-01-15T10:00:00Z',
         updatedAt: '2024-01-15T10:00:00Z',
         audioUrl: 'https://example.com/audio/episode1.mp3',
@@ -157,7 +157,7 @@ class FeedService {
       {
         id: 'content_002',
         title: 'Episode 2: Advanced Features',
-        description: 'Deep dive into advanced features of the SubStream Protocol',
+        description: 'Deep dive into advanced features of the AgreeStellar',
         createdAt: '2024-01-22T14:30:00Z',
         updatedAt: '2024-01-22T14:30:00Z',
         audioUrl: 'https://example.com/audio/episode2.mp3',

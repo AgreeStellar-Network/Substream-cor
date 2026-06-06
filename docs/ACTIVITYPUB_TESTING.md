@@ -65,7 +65,7 @@ Expected response:
   "type": "Person",
   "preferredUsername": "creator_GABCDEF12",
   "name": "Creator Name",
-  "summary": "Content creator on SubStream Protocol",
+  "summary": "Content creator on AgreeStellar",
   "inbox": "http://localhost:3000/ap/actor/GABCDEF123456789/inbox",
   "outbox": "http://localhost:3000/ap/actor/GABCDEF123456789/outbox",
   "followers": "http://localhost:3000/ap/actor/GABCDEF123456789/followers"

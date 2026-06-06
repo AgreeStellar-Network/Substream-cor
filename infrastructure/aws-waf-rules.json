@@ -1,6 +1,6 @@
 {
   "AWSCloudFormationVersion": "2010-09-09",
-  "Description": "AWS WAF Rules for SubStream Protocol API Gateway",
+  "Description": "AWS WAF Rules for AgreeStellar API Gateway",
   "Resources": {
     "WebACL": {
       "Type": "AWS::WAFv2::WebACL",

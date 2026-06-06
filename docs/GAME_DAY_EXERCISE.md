@@ -5,7 +5,7 @@ This document provides a comprehensive plan for conducting a simulated "Game Day
 ## Exercise Overview
 
 ### Objective
-Validate that the SubStream Protocol Backend can survive a complete primary region failure and recover within the defined RTO (< 15 minutes) and RPO (< 15 minutes).
+Validate that the Substream-cor can survive a complete primary region failure and recover within the defined RTO (< 15 minutes) and RPO (< 15 minutes).
 
 ### Scope
 - Primary region: us-east-1

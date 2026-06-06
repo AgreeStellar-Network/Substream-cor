@@ -1,6 +1,6 @@
 # Sign-In With Stellar (SIWS) Implementation
 
-This document describes the SEP-10 compliant Sign-In With Stellar implementation for the SubStream Protocol Backend.
+This document describes the SEP-10 compliant Sign-In With Stellar implementation for the Substream-cor.
 
 ## Overview
 
@@ -138,7 +138,7 @@ POST /auth/stellar/validate-sessions
 # Stellar Configuration
 STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
-DOMAIN=substream-protocol.com
+DOMAIN=substream.app
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production

@@ -23,7 +23,7 @@ const transporter = nodemailer.createTransport({
  */
 async function sendEmail({ to, subject, text, html }) {
   const info = await transporter.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@substream-protocol.com',
+    from: process.env.SMTP_FROM || 'no-reply@substream.app',
     to,
     subject,
     text,

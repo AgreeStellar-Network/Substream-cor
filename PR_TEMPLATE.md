@@ -4,7 +4,7 @@
 feat: Implement four critical features - tenant flags, data export, Docker K8s, and WebSocket rate limiting
 
 ## Description
-This PR implements four major features for the SubStream Protocol Backend that address critical architectural, security, compliance, and deployment requirements:
+This PR implements four major features for the Substream-cor that address critical architectural, security, compliance, and deployment requirements:
 
 ### #161 Tenant-Level Feature Flag Toggles ✅
 - **Redis-backed feature flag evaluation** with sub-1ms performance
@@ -204,7 +204,7 @@ kubectl rollout undo deployment/substream-backend -n substream
 Closes #161, #164, #165, #157
 
 ## Additional Notes
-This implementation provides a robust, secure, and scalable foundation for the SubStream Protocol Backend with enterprise-grade features. All four critical issues have been resolved with comprehensive testing, security hardening, and performance optimization.
+This implementation provides a robust, secure, and scalable foundation for the Substream-cor with enterprise-grade features. All four critical issues have been resolved with comprehensive testing, security hardening, and performance optimization.
 
 The implementation is production-ready and includes:
 - Sub-1ms feature flag performance

@@ -3,7 +3,7 @@
 /**
  * Initialize Four Critical Features
  * 
- * This script initializes the four critical features for the SubStream Protocol Backend:
+ * This script initializes the four critical features for the Substream-cor:
  * 1. Tenant-Level Feature Flag Toggles
  * 2. Automated Data Export and Portability
  * 3. WebSocket Rate Limiting
@@ -15,7 +15,7 @@ const tenantConfigurationService = require('../src/services/tenantConfigurationS
 const websocketRateLimitService = require('../src/services/websocketRateLimitService');
 
 async function initializeFeatures() {
-  console.log('🚀 Initializing Four Critical Features for SubStream Protocol Backend...\n');
+  console.log('🚀 Initializing Four Critical Features for Substream-cor...\n');
 
   try {
     // Initialize services

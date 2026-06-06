@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds four major feature sets to the SubStream Protocol backend, enhancing security, reliability, monitoring, and developer experience.
+This implementation adds four major feature sets to the Substream-cor, enhancing security, reliability, monitoring, and developer experience.
 
 **Branch:** `feature/fraud-prevention-devops-improvements`  
 **Date:** March 28, 2026  
@@ -145,7 +145,7 @@ Implemented comprehensive error monitoring with Winston structured logging, Sent
   "level": "error",
   "message": "Subscription verification failed",
   "timestamp": "2026-03-28T12:34:56.789Z",
-  "service": "substream-protocol",
+  "service": "substream-cor",
   "traceId": "abc123-def456",
   "walletAddress": "gbzkmbxw5vhzq7ykj5vxqz5vxqz5vxqz5vxqz",
   "contractId": "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE",
@@ -412,7 +412,7 @@ All four tasks have been successfully implemented with:
 - ✅ **Production-ready** code with error handling
 - ✅ **Performance optimized** for high load (5,000+ RPS)
 
-The SubStream Protocol backend now has:
+The Substream-cor now has:
 1. Advanced fraud prevention capabilities
 2. Enterprise-grade migration system
 3. World-class error monitoring

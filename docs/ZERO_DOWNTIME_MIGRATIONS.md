@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to perform database migrations on the SubStream-Protocol backend **without any service interruption**, even under high load (5,000+ requests per second).
+This guide explains how to perform database migrations on the Substream-cor backend **without any service interruption**, even under high load (5,000+ requests per second).
 
 ## Architecture Principles
 
@@ -329,4 +329,4 @@ For questions about this guide:
 
 **Last Updated:** March 28, 2026  
 **Version:** 1.0  
-**Author:** SubStream Protocol Team
+**Author:** AgreeStellar Team

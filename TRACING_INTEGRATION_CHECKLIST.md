@@ -1,6 +1,6 @@
 # Distributed Tracing Implementation Checklist
 
-Use this checklist to systematically add distributed tracing to each service in the SubStream Protocol Backend.
+Use this checklist to systematically add distributed tracing to each service in the Substream-cor.
 
 ## ✅ Core Infrastructure (Completed)
 

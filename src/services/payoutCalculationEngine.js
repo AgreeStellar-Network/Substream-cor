@@ -2,7 +2,7 @@
  * Payout Calculation Engine with Intensity Scaling
  * 
  * Integrates ScaledUserProp algorithm with Sybil attack protection to provide
- * fraud-proof revenue division for the SubStream Protocol.
+ * fraud-proof revenue division for the AgreeStellar.
  * 
  * Key Features:
  * - Real-time payout calculations

@@ -13,7 +13,7 @@ router.get('/status', (req, res) => {
     status: 'operational',
     timestamp: new Date().toISOString(),
     usage: req.usageInfo,
-    message: 'SubStream Protocol API is running normally',
+    message: 'AgreeStellar API is running normally',
   });
 });
 
@@ -45,9 +45,9 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
-// Sample data endpoint for SubStream Protocol
+// Sample data endpoint for AgreeStellar
 router.get('/data', (req, res) => {
-  // Simulate SubStream Protocol data access
+  // Simulate AgreeStellar data access
   res.json({
     protocol: 'SubStream',
     data: {
@@ -79,7 +79,7 @@ router.post('/transactions', (req, res) => {
     success: true,
     transaction_id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     status: 'submitted',
-    message: 'Transaction submitted to SubStream Protocol',
+    message: 'Transaction submitted to AgreeStellar',
   });
 });
 

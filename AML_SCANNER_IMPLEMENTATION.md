@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the complete AML (Anti-Money Laundering) and Sanctions Watchlist Auto-Scanner implementation for the SubStream Protocol Backend. This system provides institutional-grade compliance by automatically screening all Stellar addresses against global sanctions lists and taking appropriate enforcement actions.
+This document describes the complete AML (Anti-Money Laundering) and Sanctions Watchlist Auto-Scanner implementation for the Substream-cor. This system provides institutional-grade compliance by automatically screening all Stellar addresses against global sanctions lists and taking appropriate enforcement actions.
 
 ## 🎯 Purpose
 

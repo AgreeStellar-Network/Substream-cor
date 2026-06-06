@@ -387,4 +387,4 @@ When contributing to the Reconciliation Worker:
 
 ## License
 
-This component is part of the SubStream Protocol Backend project and follows the same licensing terms.
+This component is part of the Substream-cor project and follows the same licensing terms.

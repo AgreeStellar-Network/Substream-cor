@@ -34,7 +34,7 @@ SOROBAN_NETWORK_PASSPHRASE=Public Network
 SOROBAN_CONTRACT_ID=CAOUX2FZ65IDC4F2X7LJJ2SVF23A35CCTZB7KVVN475JCLKTTU4CEY6L
 
 # Database Configuration
-DATABASE_FILENAME=./data/substream-protocol.sqlite
+DATABASE_FILENAME=./data/substream-cor.sqlite
 
 # RabbitMQ Configuration (for event publishing)
 RABBITMQ_URL=amqp://localhost:5672
@@ -438,7 +438,7 @@ const validation = parser.validateEventData(parsedEvent);
 ```bash
 # Clone repository
 git clone <repository>
-cd substream-protocol-backend
+cd substream-cor
 
 # Install dependencies
 npm install

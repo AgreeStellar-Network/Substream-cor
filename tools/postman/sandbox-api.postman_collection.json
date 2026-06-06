@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "sandbox-api-collection",
 		"name": "SubStream Sandbox API",
-		"description": "Postman collection for SubStream Protocol Sandbox Environment testing",
+		"description": "Postman collection for AgreeStellar Sandbox Environment testing",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {

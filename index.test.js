@@ -6,7 +6,7 @@ const { AppDatabase } = require('./src/db/appDatabase');
 const { CdnTokenService } = require('./src/services/cdnTokenService');
 const { CreatorAuthService } = require('./src/services/creatorAuthService');
 
-describe('SubStream Protocol API', () => {
+describe('AgreeStellar API', () => {
   let database;
   let config;
   let creatorAuthService;
@@ -67,7 +67,7 @@ describe('SubStream Protocol API', () => {
     const res = await request(app).get('/');
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('project', 'SubStream Protocol');
+    expect(res.body).toHaveProperty('project', 'AgreeStellar');
     expect(res.body).toHaveProperty('status', 'Active');
   });
 
@@ -253,7 +253,7 @@ describe('SubStream Protocol API', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
-    expect(res.body.toString('utf8')).toContain('SubStream Protocol Creator Audit Log');
+    expect(res.body.toString('utf8')).toContain('AgreeStellar Creator Audit Log');
     expect(res.body.toString('utf8')).toContain('Creator: creator-1');
   });
 

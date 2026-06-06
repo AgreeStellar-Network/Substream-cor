@@ -1,7 +1,7 @@
 /**
  * Sybil Attack Protection Service
  * 
- * Implements comprehensive protection against Sybil attacks in the SubStream Protocol
+ * Implements comprehensive protection against Sybil attacks in the AgreeStellar
  * by detecting and preventing coordinated manipulation of the revenue division system.
  * 
  * Key Features:

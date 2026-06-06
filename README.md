@@ -1,13 +1,10 @@
-# SubStream Protocol Backend
+# Substream-cor
 
-A comprehensive backend API for the SubStream Protocol, supporting wallet-based authentication, tier-based content access, real-time analytics, and multi-region storage replication.
+[![AgreeStellar Network](https://img.shields.io/badge/org-AgreeStellar--Network-blue)](https://github.com/AgreeStellar-Network)
 
-> **Last Updated:** April 28, 2026  
+Enterprise-grade backend API for the **Substream** pay-as-you-go subscription protocol. Wallet-based auth, tiered content gating, real-time analytics, Soroban event indexing, and multi-region storage. Part of the [AgreeStellar Network](https://github.com/AgreeStellar-Network) ecosystem.
+
 > **Version:** 1.0.0 (Production Ready)
-
-## 📋 Project Overview
-
-This project has undergone extensive development with enterprise-grade features, security enhancements, infrastructure improvements, and compliance frameworks. Below is a complete summary of all implementations.
 
 ---
 
@@ -82,8 +79,8 @@ This project has undergone extensive development with enterprise-grade features,
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/lifewithbigdamz/SubStream-Protocol-Backend.git
-cd SubStream-Protocol-Backend
+git clone https://github.com/AgreeStellar-Network/Substream-cor.git
+cd Substream-cor
 ```
 
 2. Install FFmpeg:
@@ -760,34 +757,20 @@ npm run test:pii                      # PII scrubbing tests
 
 ## 📝 License
 
-[Your License Here]
+MIT
 
 ---
 
 ## 📞 Support
 
 For issues, questions, or feature requests:
-- Create an issue on GitHub
-- Check existing documentation
-- Review implementation guides
-- Contact: [support email]
+- Open an issue on [GitHub](https://github.com/AgreeStellar-Network/Substream-cor/issues)
+- Check the [documentation](./docs)
 
 ---
 
-## 🎯 Roadmap
+**Part of [AgreeStellar Network](https://github.com/AgreeStellar-Network)** — Decentralized creator economy infrastructure.
 
-Future enhancements:
-- [ ] GraphQL API support
-- [ ] Enhanced machine learning fraud detection
-- [ ] Multi-chain blockchain support
-- [ ] Advanced analytics dashboards
-- [ ] Webhook event streaming
-- [ ] Enhanced reporting tools
-- [ ] Mobile app backend optimization
-
----
-
-**Last Updated:** April 28, 2026
 **Status:** Production Ready ✅
 
 ## Usage Examples
@@ -799,7 +782,7 @@ const nonceResponse = await fetch('/auth/nonce?address=0x742d35Cc6634C0532925a3b
 const { nonce } = await nonceResponse.json();
 
 // 2. Sign message with wallet
-const message = `Sign in to SubStream Protocol at ${new Date().toISOString()}\n\nNonce: ${nonce}\nAddress: 0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45`;
+const message = `Sign in to Substream at ${new Date().toISOString()}\n\nNonce: ${nonce}\nAddress: 0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45`;
 const signature = await signer.signMessage(message);
 
 // 3. Login

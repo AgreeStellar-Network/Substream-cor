@@ -1,6 +1,6 @@
 # Implementation Summary: Four Critical Features
 
-This document summarizes the implementation of four critical features for the SubStream Protocol Backend:
+This document summarizes the implementation of four critical features for the Substream-cor:
 
 ## 1. Tenant-Level Feature Flag Toggles (#161) ✅
 
@@ -214,4 +214,4 @@ This document summarizes the implementation of four critical features for the Su
 - Enhanced WebSocket server with rate limiting
 - Updated package.json with new dependencies
 
-This implementation provides a robust, secure, and scalable foundation for the SubStream Protocol Backend with enterprise-grade features.
+This implementation provides a robust, secure, and scalable foundation for the Substream-cor with enterprise-grade features.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide outlines the comprehensive zero-downtime database migration strategy implemented for the SubStream Protocol backend. The system ensures database migrations can be performed without service interruption, maintaining backwards compatibility and system reliability.
+This guide outlines the comprehensive zero-downtime database migration strategy implemented for the Substream-cor. The system ensures database migrations can be performed without service interruption, maintaining backwards compatibility and system reliability.
 
 ## Key Components
 

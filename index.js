@@ -2,7 +2,7 @@ const dotenv = require('dotenv');
 const { initTracing } = require('./src/utils/opentelemetry');
 
 dotenv.config();
-initTracing({ serviceName: 'substream-protocol-backend', serviceVersion: '1.0.0' });
+initTracing({ serviceName: 'substream-cor', serviceVersion: '1.0.0' });
 
 const express = require('express');
 const cors = require('cors');
@@ -446,7 +446,7 @@ async function createApp(dependencies = {}) {
   // ── Health / root ──────────────────────────────────────────────────────────
   app.get('/', (req, res) => {
     res.json({
-      project: 'SubStream Protocol',
+      project: 'AgreeStellar Network - Substream-cor',
       status: 'Active',
       contract: config.soroban.contractId,
       version: '1.0.0',

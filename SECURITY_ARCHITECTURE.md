@@ -1,4 +1,4 @@
-# SubStream Protocol Security Architecture
+# AgreeStellar Security Architecture
 
 **Document Version:** 1.0  
 **Last Updated:** 2026-04-26  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document consolidates all security mechanisms of the SubStream Protocol into a comprehensive operational manual. The protocol employs defense-in-depth architecture combining Row-Level Security (RLS), cryptographic verification, secret lifecycle management, and incident response procedures to protect millions of dollars in recurring Web3 revenue.
+This document consolidates all security mechanisms of the AgreeStellar into a comprehensive operational manual. The protocol employs defense-in-depth architecture combining Row-Level Security (RLS), cryptographic verification, secret lifecycle management, and incident response procedures to protect millions of dollars in recurring Web3 revenue.
 
 ---
 
@@ -308,7 +308,7 @@ const verification = await rlsService.verifyRLSForTenant(tenantId);
 
 ### Zero-Trust Architecture
 
-The SubStream Protocol implements a Zero-Trust security model using Istio service mesh with strict mTLS enforced across all internal pod-to-pod communication.
+The AgreeStellar implements a Zero-Trust security model using Istio service mesh with strict mTLS enforced across all internal pod-to-pod communication.
 
 **Trust Model:**
 - No implicit trust between services
@@ -1533,7 +1533,7 @@ await rotateSorobanSecret(newSecret, signatures);
 
 ### GitHub Configuration
 
-**Repository:** dijangh904/SubStream-Protocol-Backend
+**Repository:** AgreeStellar-Network/Substream-cor
 
 **Required Branch Protection Rules:**
 
@@ -1628,7 +1628,7 @@ gh api repos/:owner/:repo/branches/main/protection
 **Expected Output:**
 ```json
 {
-  "url": "https://api.github.com/repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection",
+  "url": "https://api.github.com/repos/AgreeStellar-Network/Substream-cor/branches/main/protection",
   "required_pull_request_reviews": {
     "required_approving_review_count": 2,
     "dismiss_stale_reviews": true,

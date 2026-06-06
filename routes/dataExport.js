@@ -253,7 +253,7 @@ router.get('/export-data/schema', async (req, res) => {
   try {
     const schema = {
       version: '1.0',
-      description: 'Data export schema for SubStream Protocol tenant data',
+      description: 'Data export schema for AgreeStellar tenant data',
       last_updated: new Date().toISOString(),
       tables: {
         tenant_info: {

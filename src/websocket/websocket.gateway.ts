@@ -135,7 +135,7 @@ export class WebSocketGateway
 
       // Send welcome message
       client.emit('connected', {
-        message: 'Successfully connected to SubStream Protocol',
+        message: 'Successfully connected to AgreeStellar',
         merchantId: stellarPublicKey,
         timestamp: new Date().toISOString(),
       });

@@ -1,10 +1,10 @@
-# Vault Setup Guide for SubStream Protocol Backend
+# Vault Setup Guide for Substream-cor
 
 This document provides the exact Vault paths and required JSON structures for provisioning new environments. The Vault integration uses Kubernetes authentication to securely inject secrets into pods without storing them in the Kubernetes manifest repository.
 
 ## Overview
 
-The SubStream Protocol Backend uses HashiCorp Vault for secrets management with the following architecture:
+The Substream-cor uses HashiCorp Vault for secrets management with the following architecture:
 
 - **Authentication Method**: Kubernetes Service Account authentication
 - **Secret Injection**: Vault sidecar injector (mutating webhook)

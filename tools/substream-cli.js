@@ -312,7 +312,7 @@ const cli = new SubStreamCLI();
 
 program
   .name('substream-cli')
-  .description('SubStream Protocol Sandbox CLI Tool')
+  .description('AgreeStellar Sandbox CLI Tool')
   .version('1.0.0');
 
 program

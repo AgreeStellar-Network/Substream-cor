@@ -1,6 +1,6 @@
-# SubStream Protocol Backend Monitoring Setup
+# Substream-cor Monitoring Setup
 
-This document explains how to set up Prometheus monitoring, Grafana dashboards, and alerting for the SubStream Protocol Backend.
+This document explains how to set up Prometheus monitoring, Grafana dashboards, and alerting for the Substream-cor.
 
 ## Overview
 

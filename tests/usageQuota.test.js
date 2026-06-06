@@ -130,7 +130,7 @@ describe('Usage Quota System Tests', () => {
   });
 
   describe('API Endpoints', () => {
-    test('Should return SubStream Protocol data', async () => {
+    test('Should return AgreeStellar data', async () => {
       const response = await request(app)
         .get('/api/v1/usage-quota/data')
         .set('X-API-Key', PREMIUM_API_KEY)

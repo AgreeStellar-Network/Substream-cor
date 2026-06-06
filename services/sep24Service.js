@@ -430,7 +430,7 @@ class SEP24Service {
     // In production, this would integrate with actual banking partners
     // For now, returning mock data
     return {
-      bank_name: 'SubStream Protocol Bank',
+      bank_name: 'AgreeStellar Bank',
       bank_account_type: 'IBAN',
       bank_account_number: 'DE89370400440532013000',
       bank_routing_number: 'DEUTDEFF',

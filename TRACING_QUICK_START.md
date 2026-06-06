@@ -11,7 +11,7 @@ The tracing is initialized at the top of `index.js`:
 ```javascript
 const { initTracing } = require('./src/utils/opentelemetry');
 initTracing({ 
-  serviceName: 'substream-protocol-backend', 
+  serviceName: 'substream-cor', 
   serviceVersion: '1.0.0' 
 });
 ```
@@ -98,7 +98,7 @@ docker run -d \
 ```bash
 # Copy and update .env
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_SERVICE_NAME=substream-protocol-backend
+OTEL_SERVICE_NAME=substream-cor
 OTEL_DIAG_LEVEL=debug
 OTEL_SAMPLING_RATE=1.0  # 100% for development
 ```
@@ -285,7 +285,7 @@ router.post('/checkout', async (req, res) => {
 ### In Jaeger UI
 
 1. Open http://localhost:16686
-2. Select service: `substream-protocol-backend`
+2. Select service: `substream-cor`
 3. Click "Find Traces"
 4. Click a trace to view details
 5. Each span shows:
@@ -346,7 +346,7 @@ Should return:
 {
   "status": "ok",
   "tracing_enabled": true,
-  "service_name": "substream-protocol-backend",
+  "service_name": "substream-cor",
   "environment": "development"
 }
 ```

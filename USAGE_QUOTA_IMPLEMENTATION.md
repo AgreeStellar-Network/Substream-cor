@@ -1,8 +1,8 @@
-# Usage Quota Implementation for SubStream Protocol
+# Usage Quota Implementation for AgreeStellar
 
 ## Overview
 
-This implementation addresses Issue #221: "Developer API 'Usage Limits' and Monetization Hook" by providing a comprehensive API usage tracking and monetization system for the SubStream Protocol backend.
+This implementation addresses Issue #221: "Developer API 'Usage Limits' and Monetization Hook" by providing a comprehensive API usage tracking and monetization system for the Substream-cor.
 
 ## Features Implemented
 

@@ -92,7 +92,7 @@ describe("SEP-10 Complete Integration Tests", () => {
       expect(transaction.operations[0].source).toBe(testPublicKey);
       
       // Operation name must follow <domain> auth format
-      const expectedName = `${process.env.DOMAIN || "substream-protocol.com"} auth`;
+      const expectedName = `${process.env.DOMAIN || "substream.app"} auth`;
       expect(transaction.operations[0].name).toBe(expectedName);
       
       // Must have timebounds

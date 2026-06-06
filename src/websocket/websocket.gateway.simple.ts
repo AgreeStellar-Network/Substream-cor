@@ -93,7 +93,7 @@ export class MerchantWebSocketGateway
       this.logger.log(`Client connected: ${client.id} for merchant: ${stellarPublicKey}`);
 
       client.emit('connected', {
-        message: 'Successfully connected to SubStream Protocol',
+        message: 'Successfully connected to AgreeStellar',
         merchantId: stellarPublicKey,
         timestamp: new Date().toISOString(),
       });

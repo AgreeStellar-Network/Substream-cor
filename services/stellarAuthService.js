@@ -29,7 +29,7 @@ class StellarAuthService {
    * @param {string} domain - Server domain
    * @returns {Object} Challenge transaction details
    */
-  async generateChallenge(publicKey, domain = "substream-protocol.com") {
+  async generateChallenge(publicKey, domain = "substream.app") {
     try {
       // Validate public key format
       const keypair = StellarSdk.Keypair.fromPublicKey(publicKey);
@@ -109,7 +109,7 @@ class StellarAuthService {
       }
 
       // Verify the operation name matches our domain
-      const expectedName = `${process.env.DOMAIN || "substream-protocol.com"} auth`;
+      const expectedName = `${process.env.DOMAIN || "substream.app"} auth`;
       if (operation.name !== expectedName) {
         throw new Error("Invalid operation name");
       }

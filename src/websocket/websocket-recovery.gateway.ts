@@ -115,7 +115,7 @@ export class WebSocketRecoveryGateway
       // Send welcome message with current message ID
       const currentMessageId = this.messageIdCounter.get(stellarPublicKey) || 0;
       client.emit('connected', {
-        message: 'Successfully connected to SubStream Protocol',
+        message: 'Successfully connected to AgreeStellar',
         merchantId: stellarPublicKey,
         currentMessageId,
         timestamp: new Date().toISOString(),

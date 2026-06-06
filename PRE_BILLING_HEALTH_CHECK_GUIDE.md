@@ -66,9 +66,9 @@ SUBSTREAM_CONTRACT_ID=CAOUX2FZ65IDC4F2X7LJJ2SVF23A35CCTZB7KVVN475JCLKTTU4CEY6L
 STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 
 # Email Configuration
-FROM_EMAIL=noreply@substream-protocol.com
-SUPPORT_EMAIL=support@substream-protocol.com
-FRONTEND_URL=https://app.substream-protocol.com
+FROM_EMAIL=noreply@substream.app
+SUPPORT_EMAIL=support@substream.app
+FRONTEND_URL=https://app.substream.app
 
 # Health Check Configuration
 PRE_BILLING_CRON_SCHEDULE="0 2 * * *"  # Daily at 2 AM UTC
@@ -294,7 +294,7 @@ To respect RPC rate limits:
 ### Health Check Endpoint
 
 ```bash
-curl https://api.substream-protocol.com/api/v1/pre-billing/health
+curl https://api.substream.app/api/v1/pre-billing/health
 ```
 
 **Response:**

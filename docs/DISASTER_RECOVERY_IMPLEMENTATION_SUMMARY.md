@@ -1,10 +1,10 @@
 # Multi-Region Disaster Recovery Implementation Summary
 
-This document provides a comprehensive summary of the multi-region Disaster Recovery (DR) architecture implemented for the SubStream Protocol Backend to ensure the system can survive the complete destruction of a primary AWS/GCP region.
+This document provides a comprehensive summary of the multi-region Disaster Recovery (DR) architecture implemented for the Substream-cor to ensure the system can survive the complete destruction of a primary AWS/GCP region.
 
 ## Executive Summary
 
-The DR implementation ensures the SubStream Protocol Backend meets enterprise merchant requirements for 99.999% SLA guarantees by providing:
+The DR implementation ensures the Substream-cor meets enterprise merchant requirements for 99.999% SLA guarantees by providing:
 - Complete region failure resilience
 - Automatic DNS failover within 60 seconds
 - PostgreSQL read-replica promotion within 3-5 minutes
@@ -402,7 +402,7 @@ The DR implementation is considered successful if:
 
 ## Conclusion
 
-The multi-region Disaster Recovery implementation successfully addresses the requirement for the SubStream Protocol Backend to survive the complete destruction of a primary AWS/GCP region. The architecture ensures:
+The multi-region Disaster Recovery implementation successfully addresses the requirement for the Substream-cor to survive the complete destruction of a primary AWS/GCP region. The architecture ensures:
 
 - ✅ Complete region failure resilience
 - ✅ Automatic DNS failover within 60 seconds

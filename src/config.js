@@ -51,7 +51,7 @@ async function loadConfig(env = process.env, vaultService = null) {
     database: {
       // Use Vault dynamic credentials if available, otherwise use environment or SQLite
       useVault: env.VAULT_ENABLED === 'true' && vaultService,
-      filename: env.DATABASE_FILENAME || path.join(process.cwd(), 'data', 'substream-protocol.sqlite'),
+      filename: env.DATABASE_FILENAME || path.join(process.cwd(), 'data', 'substream-cor.sqlite'),
       url: env.DATABASE_URL || '',
       encryptionKey: getSecret('DB_ENCRYPTION_KEY') || '',
       maxConnections: databasePool.max,

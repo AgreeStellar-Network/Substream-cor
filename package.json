@@ -1,7 +1,7 @@
 {
-  "name": "substream-backend",
+  "name": "substream-cor",
   "version": "1.0.0",
-  "description": "API for SubStream Protocol",
+  "description": "Backend API for AgreeStellar Network — content gating, subscriptions & real-time analytics",
   "main": "dist/main.js",
   "scripts": {
     "start": "node dist/main",

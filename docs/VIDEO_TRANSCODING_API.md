@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SubStream Protocol backend now includes a comprehensive video transcoding and streaming system that converts uploaded videos into HLS (HTTP Live Streaming) format with multiple resolutions for adaptive bitrate streaming.
+The Substream-cor now includes a comprehensive video transcoding and streaming system that converts uploaded videos into HLS (HTTP Live Streaming) format with multiple resolutions for adaptive bitrate streaming.
 
 ## Features
 

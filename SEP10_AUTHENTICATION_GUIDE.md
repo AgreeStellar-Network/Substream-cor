@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation provides complete SEP-10 (Stellar Web Authentication) support for the SubStream Protocol backend, allowing users to authenticate securely using Stellar wallets without usernames, passwords, or emails.
+This implementation provides complete SEP-10 (Stellar Web Authentication) support for the Substream-cor, allowing users to authenticate securely using Stellar wallets without usernames, passwords, or emails.
 
 ## Architecture
 
@@ -186,7 +186,7 @@ STELLAR_HORIZON_URL="https://horizon-testnet.stellar.org"
 
 # Authentication
 JWT_SECRET="your-secure-secret-key"
-DOMAIN="substream-protocol.com"
+DOMAIN="substream.app"
 
 # Test Credentials (for integration testing)
 STELLAR_TEST_PUBLIC_KEY="GABC..."

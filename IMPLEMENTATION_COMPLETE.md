@@ -339,7 +339,7 @@ soroban contract deploy \
 ## File Locations
 
 ```
-/home/semicolon/Documents/DRIP\ TASK/SubStream-Protocol-Backend/
+AgreeStellar-Network/Substream-cor/
 ├── contracts/scholarship/
 │   ├── Cargo.toml                          # Package config
 │   ├── README.md                           # Full documentation

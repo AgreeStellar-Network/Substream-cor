@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The **ScaledUserProp Revenue Division System** implements the groundbreaking ICML 2025 research algorithm to protect the SubStream Protocol from Sybil attacks and manipulation. This system replaces traditional "pro-rata" payouts with mathematically-proven fraud-proof revenue division that adjusts creator payouts based on engagement intensity rather than raw view counts.
+The **ScaledUserProp Revenue Division System** implements the groundbreaking ICML 2025 research algorithm to protect the AgreeStellar from Sybil attacks and manipulation. This system replaces traditional "pro-rata" payouts with mathematically-proven fraud-proof revenue division that adjusts creator payouts based on engagement intensity rather than raw view counts.
 
 ## 🔬 Research Foundation
 
@@ -511,7 +511,7 @@ setInterval(async () => {
 
 ## 🎉 Conclusion
 
-The **ScaledUserProp Revenue Division System** represents a groundbreaking advancement in subscription platform security and fairness. By implementing mathematically-proven fraud resistance while maintaining excellent performance and user experience, this system protects the SubStream Protocol from sophisticated manipulation attempts.
+The **ScaledUserProp Revenue Division System** represents a groundbreaking advancement in subscription platform security and fairness. By implementing mathematically-proven fraud resistance while maintaining excellent performance and user experience, this system protects the AgreeStellar from sophisticated manipulation attempts.
 
 ### **Key Achievements**
 
@@ -523,6 +523,6 @@ The **ScaledUserProp Revenue Division System** represents a groundbreaking advan
 
 ### **Impact**
 
-This implementation transforms the SubStream Protocol's revenue division from a vulnerable system into a mathematically-secure, fair, and efficient platform that can scale to millions of users while maintaining integrity and trust.
+This implementation transforms the AgreeStellar's revenue division from a vulnerable system into a mathematically-secure, fair, and efficient platform that can scale to millions of users while maintaining integrity and trust.
 
 **The future of fair revenue division is here.** 🚀

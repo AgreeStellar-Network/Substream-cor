@@ -2,7 +2,7 @@
 
 ## Overview
 
-I have successfully implemented a comprehensive Reconciliation Worker for the SubStream Protocol Backend that addresses all the requirements specified in the GitHub issue. This specialized worker ensures financial data integrity by comparing on-chain SubscriptionBilled events against merchant vault balances.
+I have successfully implemented a comprehensive Reconciliation Worker for the Substream-cor that addresses all the requirements specified in the GitHub issue. This specialized worker ensures financial data integrity by comparing on-chain SubscriptionBilled events against merchant vault balances.
 
 ## Implementation Details
 
@@ -219,7 +219,7 @@ Reports are generated in `reports/reconciliation/` directory:
 
 ## Conclusion
 
-The Reconciliation Worker implementation provides a robust, scalable solution for ensuring financial data integrity in the SubStream Protocol Backend. It addresses all specified requirements while maintaining high standards for reliability, performance, and maintainability.
+The Reconciliation Worker implementation provides a robust, scalable solution for ensuring financial data integrity in the Substream-cor. It addresses all specified requirements while maintaining high standards for reliability, performance, and maintainability.
 
 The implementation is production-ready with comprehensive testing, documentation, and monitoring capabilities. It establishes the backend database as the authoritative source of truth for accounting while providing the automatic healing mechanisms needed to maintain data consistency in a distributed blockchain environment.
 

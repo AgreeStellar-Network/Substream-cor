@@ -2,7 +2,7 @@
 
 ## Repository Structure Issue Resolution
 
-The main SubStream-Protocol repository uses a different structure than expected:
+The main AgreeStellar-Network repository uses a different structure than expected:
 - **NestJS application** with backend code in root `src/` directory
 - **JavaScript/SQL migrations** instead of TypeScript migrations
 - **Different dependency structure** and service patterns
@@ -192,4 +192,4 @@ FROM_EMAIL=noreply@stellar-privacy.com
 - Permission inheritance and hierarchy
 - Comprehensive audit trail
 
-This adapter implementation provides complete multi-organization functionality while maintaining compatibility with the existing SubStream-Protocol repository structure.
+This adapter implementation provides complete multi-organization functionality while maintaining compatibility with the existing repository structure.

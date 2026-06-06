@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PII (Personally Identifiable Information) Scrubbing System implements GDPR/CCPA compliant data deletion for the SubStream Protocol. It automatically scrubs user personal data while preserving financial records for tax compliance.
+The PII (Personally Identifiable Information) Scrubbing System implements GDPR/CCPA compliant data deletion for the AgreeStellar. It automatically scrubs user personal data while preserving financial records for tax compliance.
 
 ## Features
 
@@ -487,7 +487,7 @@ Configure alerts for:
 
 For issues or questions:
 - **Email**: privacy@substream.protocol
-- **GitHub Issues**: [SubStream Protocol Backend](https://github.com/SubStream-Protocol/SubStream-Protocol-Backend/issues)
+- **GitHub Issues**: [Substream-cor](https://github.com/AgreeStellar-Network/Substream-cor/issues)
 - **Documentation**: [Full Documentation](./docs)
 
 ## License

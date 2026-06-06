@@ -1,6 +1,6 @@
 # Branch Protection Rules Configuration
 
-**Repository:** dijangh904/SubStream-Protocol-Backend  
+**Repository:** AgreeStellar-Network/Substream-cor  
 **Document Version:** 1.0  
 **Last Updated:** 2026-04-26
 
@@ -62,7 +62,7 @@ gh auth login
 
 **Set Branch Protection:**
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection \
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection \
   --method PUT \
   -f required_pull_request_reviews[required_approving_review_count]=2 \
   -f required_pull_request_reviews[dismiss_stale_reviews]=true \
@@ -76,7 +76,7 @@ gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection \
 
 **Add Required Status Checks:**
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/required_status_checks \
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection/required_status_checks \
   --method PUT \
   -f strict=true \
   -f checks[]="CI/CD Pipeline" \
@@ -88,7 +88,7 @@ gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/requ
 
 **Restrict Push Access:**
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/restrictions \
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection/restrictions \
   --method PUT \
   -f apps[]=github-actions \
   -f teams[]=core-team
@@ -101,7 +101,7 @@ gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/rest
 curl -X PUT \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection \
+  https://api.github.com/repos/AgreeStellar-Network/Substream-cor/branches/main/protection \
   -d '{
     "required_pull_request_reviews": {
       "required_approving_review_count": 2,
@@ -130,7 +130,7 @@ curl -X PUT \
 curl -X PUT \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/restrictions \
+  https://api.github.com/repos/AgreeStellar-Network/Substream-cor/branches/main/protection/restrictions \
   -d '{
     "apps": ["github-actions"],
     "teams": ["core-team"]
@@ -145,13 +145,13 @@ curl -X PUT \
 
 **Using GitHub CLI:**
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection
 ```
 
 **Expected Output:**
 ```json
 {
-  "url": "https://api.github.com/repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection",
+  "url": "https://api.github.com/repos/AgreeStellar-Network/Substream-cor/branches/main/protection",
   "required_pull_request_reviews": {
     "required_approving_review_count": 2,
     "dismiss_stale_reviews": true,
@@ -177,19 +177,19 @@ gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection
 **Using curl:**
 ```bash
 curl -H "Authorization: token $GITHUB_TOKEN" \
-  https://api.github.com/repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection
+  https://api.github.com/repos/AgreeStellar-Network/Substream-cor/branches/main/protection
 ```
 
 ### Check Status Checks
 
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/required_status_checks
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection/required_status_checks
 ```
 
 ### Check Push Restrictions
 
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection/restrictions
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection/restrictions
 ```
 
 ---
@@ -452,7 +452,7 @@ Set up alerts for:
 **Alert Configuration:**
 ```bash
 # Create GitHub webhook for branch protection events
-gh api repos/dijangh904/SubStream-Protocol-Backend/hooks \
+gh api repos/AgreeStellar-Network/Substream-cor/hooks \
   -f name="webhook" \
   -f active=true \
   -f events='["branch_protection_rule","pull_request"]' \
@@ -522,7 +522,7 @@ gh run rerun <run-id>
 
 **Check required reviewers:**
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection
 ```
 
 **Add code owners:**
@@ -537,7 +537,7 @@ Edit `.github/CODEOWNERS` file
 
 **Bypass command:**
 ```bash
-gh api repos/dijangh904/SubStream-Protocol-Backend/branches/main/protection \
+gh api repos/AgreeStellar-Network/Substream-cor/branches/main/protection \
   --method DELETE
 ```
 

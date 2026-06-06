@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SubStream Protocol Mainnet Load Test
+ * AgreeStellar Mainnet Load Test
  * 
  * This script simulates production-level load to validate backend readiness:
  * - 1 million billing events
@@ -75,7 +75,7 @@ class MainnetLoadTest {
   }
 
   async run() {
-    console.log('🚀 Starting SubStream Protocol Mainnet Load Test');
+    console.log('🚀 Starting AgreeStellar Mainnet Load Test');
     console.log(`📊 Target: ${this.config.billingEvents.toLocaleString()} billing events`);
     console.log(`🔌 Target: ${this.config.concurrentConnections.toLocaleString()} WebSocket connections`);
     console.log(`⏱️  Duration: ${this.config.duration} seconds`);

@@ -2,7 +2,7 @@
 
 **Status:** ✅ Complete and Production-Ready
 
-Comprehensive distributed tracing implementation using OpenTelemetry for cross-service transaction debugging across the SubStream Protocol Backend.
+Comprehensive distributed tracing implementation using OpenTelemetry for cross-service transaction debugging across the Substream-cor.
 
 ## 🎯 What's Been Implemented
 
@@ -99,7 +99,7 @@ docker run -d \
 ### 2. Configure Environment
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-export OTEL_SERVICE_NAME=substream-protocol-backend
+export OTEL_SERVICE_NAME=substream-cor
 export OTEL_SAMPLING_RATE=1.0
 ```
 
@@ -111,7 +111,7 @@ npm run dev
 ### 4. View Traces
 - Make a request: `curl http://localhost:3000/api/content`
 - Open Jaeger UI: http://localhost:16686
-- Select service: `substream-protocol-backend`
+- Select service: `substream-cor`
 - Click "Find Traces"
 
 ## 📚 Documentation Files
@@ -309,7 +309,7 @@ Response:
 {
   "status": "ok",
   "tracing_enabled": true,
-  "service_name": "substream-protocol-backend",
+  "service_name": "substream-cor",
   "environment": "production"
 }
 ```
@@ -344,7 +344,7 @@ kubectl apply -f k8s/backend-deployment.yaml
 
 ### Jaeger UI
 - **URL:** http://localhost:16686
-- **Service:** Select `substream-protocol-backend`
+- **Service:** Select `substream-cor`
 - **Filters:** Search by trace ID, correlation ID, or tags
 - **Details:** View full trace waterfall with timings
 
@@ -354,7 +354,7 @@ kubectl apply -f k8s/backend-deployment.yaml
 curl http://localhost:16686/api/services
 
 # Get traces
-curl http://localhost:16686/api/traces?service=substream-protocol-backend
+curl http://localhost:16686/api/traces?service=substream-cor
 
 # Get specific trace
 curl http://localhost:16686/api/traces/{traceId}
@@ -401,7 +401,7 @@ Tests cover:
 ### Essential Variables
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-OTEL_SERVICE_NAME=substream-protocol-backend
+OTEL_SERVICE_NAME=substream-cor
 OTEL_SAMPLING_RATE=0.1
 ```
 
@@ -471,7 +471,7 @@ See `.env.tracing.example` for all 50+ configuration options.
 
 ## 📜 License
 
-Part of SubStream Protocol Backend - See LICENSE file
+Part of Substream-cor - See LICENSE file
 
 ---
 

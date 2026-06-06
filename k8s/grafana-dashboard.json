@@ -1,7 +1,7 @@
 {
   "dashboard": {
     "id": null,
-    "title": "SubStream Protocol Backend Dashboard",
+    "title": "Substream-cor Dashboard",
     "tags": ["substream", "backend", "api"],
     "timezone": "UTC",
     "panels": [

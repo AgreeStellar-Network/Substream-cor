@@ -124,7 +124,7 @@ class InvoiceService {
             ]
           }
         },
-        { text: '\nThank you for using SubStream Protocol!', style: 'footer' }
+        { text: '\nThank you for using AgreeStellar!', style: 'footer' }
       ],
       styles: {
         header: { fontSize: 22, bold: true, margin: [0, 0, 0, 20] },

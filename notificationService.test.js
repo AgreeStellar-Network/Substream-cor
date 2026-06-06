@@ -350,12 +350,12 @@ describe('Email Notification Service', () => {
       notificationService.createPredefinedTemplates();
 
       const welcomeMapping = notificationService.getTemplateMapping('welcome');
-      expect(welcomeMapping.defaultVariables.appName).toBe('SubStream Protocol');
-      expect(welcomeMapping.defaultVariables.supportEmail).toBe('support@substream-protocol.com');
+      expect(welcomeMapping.defaultVariables.appName).toBe('AgreeStellar');
+      expect(welcomeMapping.defaultVariables.supportEmail).toBe('support@substream.app');
 
       const paymentFailureMapping = notificationService.getTemplateMapping('payment_failure');
-      expect(paymentFailureMapping.defaultVariables.appName).toBe('SubStream Protocol');
-      expect(paymentFailureMapping.defaultVariables.billingUrl).toBe('https://app.substream-protocol.com/billing');
+      expect(paymentFailureMapping.defaultVariables.appName).toBe('AgreeStellar');
+      expect(paymentFailureMapping.defaultVariables.billingUrl).toBe('https://app.substream.app/billing');
     });
 
     it('should send predefined template email', async () => {
@@ -920,8 +920,8 @@ describe('Acceptance Criteria Tests', () => {
     // Create template mapping with variables
     notificationService.addTemplateMapping('personalized_welcome', {
       defaultVariables: {
-        appName: 'SubStream Protocol',
-        supportEmail: 'support@substream-protocol.com',
+        appName: 'AgreeStellar',
+        supportEmail: 'support@substream.app',
         currentYear: () => new Date().getFullYear()
       }
     });
@@ -938,8 +938,8 @@ describe('Acceptance Criteria Tests', () => {
 
     const processed = notificationService.processTemplateVariables(emailData);
 
-    expect(processed.templateData.appName).toBe('SubStream Protocol');
-    expect(processed.templateData.supportEmail).toBe('support@substream-protocol.com');
+    expect(processed.templateData.appName).toBe('AgreeStellar');
+    expect(processed.templateData.supportEmail).toBe('support@substream.app');
     expect(processed.templateData.currentYear).toBe(new Date().getFullYear());
     expect(processed.templateData.userName).toBe('John Doe');
     expect(processed.templateData.planType).toBe('Premium');
